@@ -1,0 +1,22 @@
+
+config aria2 'aria2'
+	option dir '/mnt/sda3'
+	option disk_cache '1M'
+	option file_allocation 'prealloc'
+	option max_overall_download_limit '0'
+	option max_concurrent_downloads '5'
+	option enable '1'
+	option always_resume '1'
+
+config http_ftp
+	option split '5'
+	option max_tries '0'
+	option retry_wait '2'
+	option max_connection_per_server '5'
+
+config rpc
+	option enable_rpc '1'
+	option rpc_listen_port '6800'
+	option rpc_allow_origin_all '1'
+	option rpc_listen_all '1'
+

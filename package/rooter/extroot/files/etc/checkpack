@@ -1,0 +1,24 @@
+#!/bin/sh
+
+local total=$(uci get repository.feature.total)
+
+rm -f /tmp/packdata
+
+if [ $total -gt 0 ]; then
+	n=1
+	inst=0
+	delay=0
+	while [ $n -le $total ]; do
+		flg=$(uci get repository.uninstalled.f$n)
+		if [ $flg -eq 1 ]; then
+			idelay=$(uci get repository.delay.f$n)
+			delay=`expr $delay + $idelay`
+			inst=1
+		fi
+		n=`expr $n + 1`
+	done
+	if [ $inst -eq 1 ]; then
+		echo "$inst" > /tmp/packdata
+		echo "$delay" >> /tmp/packdata
+	fi
+fi

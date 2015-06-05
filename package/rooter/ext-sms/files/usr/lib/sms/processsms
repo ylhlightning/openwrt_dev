@@ -1,0 +1,30 @@
+#!/bin/sh
+
+ROOTER=/usr/lib/rooter
+
+log() {
+	logger -t "sms process" "$@"
+}
+
+CURRMODEM=$1
+COMMPORT="/dev/ttyUSB"$(uci get modem.modem$CURRMODEM.commport)
+NUMB=$(uci get modem.modem$CURRMODEM.smsnum)
+
+export ATCMD="AT+CPMS=\"SM\""
+SX=$(gcom -d $COMMPORT -s $ROOTER/gcom/run-at.gcom 2>/dev/null)
+M2=$(echo "$SX" | sed -e "s/+CPMS:/+CPMS: /")
+SX=$(echo "$M2" | sed -e "s/  / /g")
+$ROOTER/log/at-logger "$COMMPORT $SX"
+USED=$(echo "$SX" | awk -F[,\ ] '/^\+CPMS:/ {print $2}')
+MAXED=$(echo "$SX" | awk -F[,\ ] '/^\+CPMS:/ {print $3}')
+if [ $USED != $NUMB ]; then
+	log "Reread SMS Messages"
+	echo "$SX" > /tmp/smsresult$CURRMODEM".at"
+	export ATCMD="AT+CMGL=4"
+	SX=$(gcom -d $COMMPORT -s $ROOTER/gcom/run-at.gcom 2>/dev/null)
+	SX=$(echo "$SX" | sed -e "s/+CMGL:/+CMGL: /g")
+	$ROOTER/log/at-logger "$COMMPORT $SX"
+	echo "$SX" >> /tmp/smsresult$CURRMODEM".at"
+	uci set modem.modem$CURRMODEM.smsnum=$USED
+	uci commit modem
+fi

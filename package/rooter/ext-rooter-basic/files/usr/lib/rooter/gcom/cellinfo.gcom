@@ -1,0 +1,37 @@
+opengt
+ set com 115200n81
+ set comecho off
+ set senddelay 0.02
+ waitquiet 0.2 0.2
+
+ let $c="AT+CREG=2^m"
+ gosub readatcmdx
+ let $c="AT+CREG?^m"
+ gosub readatcmdx
+
+ let $c="AT+CGREG=2^m"
+ gosub readatcmdx
+ let $c="AT+CGREG?^m"
+ gosub readatcmdx
+
+ let $c="AT+CGEQNEG=1^m"
+ gosub readatcmdx
+
+ exit 0
+
+:readatcmdx
+ send $c
+:rloop
+ get 1 "^m" $s
+ let j=len($s)
+ let i=0
+:loop10
+ if $mid($s,i,5) = "ERROR" goto loop11
+ if $mid($s,i,2) = "OK" goto loop11
+ let i=i+1
+ if i < j goto loop10
+ print $s
+ goto rloop
+:loop11
+ print $s
+ return

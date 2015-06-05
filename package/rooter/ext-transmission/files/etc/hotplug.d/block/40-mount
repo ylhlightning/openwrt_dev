@@ -1,0 +1,63 @@
+#!/bin/sh  /etc/rc.common
+. /lib/functions.sh
+# Copyright (C) 2011 OpenWrt.org 
+
+log() {
+	logger -t "40-mount" "$@"
+}
+
+if [ ! -f /tmp/bootend.file ]; then
+	sleep 10
+	while [ ! -f /tmp/bootend.file ]; do
+		sleep 1
+	done
+	log "Delay Block Mount for boot up"
+fi
+
+blkdev=`dirname $DEVPATH` 
+if [ `basename $blkdev` != "block" ]; then 
+	device=`basename $DEVPATH` 
+	if echo $device | grep -q "mtdblock"; then
+		exit 0
+	fi
+	if [ -e /etc/init.d/xext-root ]; then
+		if echo $device | grep -q "sda2"; then
+			exit 0
+		fi
+		if echo $device | grep -q "sda1"; then
+			exit 0
+		fi
+	fi
+
+	DRV=$(uci get transmission.transmission.cfolder)
+	if [ -z $DRV ]; then
+		exit 0
+	fi
+	if echo $DRV | grep -q "/$device"; then
+		case "$ACTION" in 
+			add)
+				QUE=$(uci get transmission.transmission.config_dir)
+				if [ -z $QUE ]; then
+					exit 0
+				fi
+				if [ -e $QUE/waiting ]; then
+					l=0
+					while read line; do
+						case "$l" in
+							"0")
+								dir=$line
+								l=`expr $l + 1`
+							;;
+							"1")
+								file=$line
+								l=0
+								cp -R "$dir/$file" "$DRV""/""$file"
+							;;
+						esac
+					done < $QUE/waiting 
+					rm -f $QUE/waiting
+				fi
+			;; 
+		esac 
+	fi
+fi

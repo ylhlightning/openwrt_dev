@@ -1,0 +1,8 @@
+
+config samba
+	option name 'ROOter'
+	option workgroup 'WORKGROUP'
+	option description 'ROOter Samba server'
+	option homes '1'
+	option min '0'
+

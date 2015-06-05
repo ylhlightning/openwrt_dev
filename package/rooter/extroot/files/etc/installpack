@@ -1,0 +1,35 @@
+#!/bin/sh
+
+log() {
+	logger -t "Install Packages" "$@"
+}
+
+local total=$(uci get repository.feature.total)
+
+rm -f /tmp/reboot
+rm -f /etc/opkginstall
+echo "0" > /tmp/installing
+
+if [ $total -gt 0 ]; then
+	cp -f /etc/extroot/opkg.conf /etc/opkg.conf
+	opkg update
+	n=1
+	inst=0
+	while [ $n -le $total ]; do
+		flg=$(uci get repository.uninstalled.f$n)
+		if [ $flg -eq 1 ]; then
+			package=$(uci get repository.package.f$n)
+			STARTIME=$(date +%s)
+			OP=$(opkg --force-overwrite install $package)
+			ENDTIME=$(date +%s)
+			echo "$package : $STARTIME" >> /etc/opkginstall
+			echo "$package : $ENDTIME" >> /etc/opkginstall
+			echo "$OP" >> /etc/opkginstall
+			inst=1
+		fi
+		n=`expr $n + 1`
+	done
+	if [ $inst -eq 1 ]; then
+		echo "0" > /tmp/reboot
+	fi
+fi

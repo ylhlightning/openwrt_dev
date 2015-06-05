@@ -1,0 +1,84 @@
+
+config interface 'wan1'
+	option enabled '1'
+	option reliability '2'
+	option count '1'
+	option timeout '2'
+	option interval '5'
+	option down '3'
+	option up '8'
+	option reroute '0'
+	list track_ip '8.8.8.8'
+	list track_ip '8.8.4.4'
+
+config interface 'wan2'
+	option enabled '1'
+	option count '1'
+	option timeout '2'
+	option interval '5'
+	option down '3'
+	option up '8'
+	option reroute '0'
+	list track_ip '8.8.8.8'
+	list track_ip '8.8.4.4'
+	option reliability '2'
+
+config member 'wan1_m1_w3'
+	option interface 'wan1'
+	option metric '1'
+	option weight '3'
+
+config member 'wan1_m2_w3'
+	option interface 'wan1'
+	option metric '2'
+	option weight '3'
+
+config member 'wan2_m1_w2'
+	option interface 'wan2'
+	option metric '1'
+	option weight '2'
+
+config member 'wan2_m2_w2'
+	option interface 'wan2'
+	option metric '2'
+	option weight '2'
+
+config policy 'wan1_only'
+	list use_member 'wan1_m1_w3'
+
+config policy 'wan2_only'
+	list use_member 'wan2_m1_w2'
+
+config policy 'wan1_wan2_lb'
+	list use_member 'wan1_m1_w3'
+	list use_member 'wan2_m1_w2'
+
+config policy 'wan1_p_wan2_s'
+	list use_member 'wan1_m1_w3'
+	list use_member 'wan2_m2_w2'
+
+config policy 'wan2_p_wan1_s'
+	list use_member 'wan1_m2_w3'
+	list use_member 'wan2_m1_w2'
+
+config rule 'rule1'
+	option proto 'all'
+	option use_policy 'wan2_p_wan1_s'
+	option dest_ip '74.125.228.196'
+
+config rule 'rule2'
+	option dest_ip '69.53.236.17'
+	option proto 'all'
+	option use_policy 'wan2_p_wan1_s'
+
+config rule 'rule3'
+	option proto 'tcp'
+	option equalize '1'
+	option src_ip '192.168.1.10'
+	option use_policy 'wan1_only'
+
+config rule 'rule6'
+	option dest_ip '0.0.0.0/0'
+	option proto 'all'
+	option use_policy 'wan1_wan2_lb'
+

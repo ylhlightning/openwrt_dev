@@ -1,0 +1,72 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+log() {
+	logger -t "Xext-Root" "$@"
+}
+
+START=99
+
+start() {
+	sleep 10
+	log "Initializing xext-root"
+	if [ ! -f /etc/pass1 ]; then
+		if [ -e /dev/sda2 ]; then
+			CODENAME="Ext-ROOter "
+			if [ -f "/etc/codename" ]; then
+				source /etc/codename
+			fi
+			source /etc/openwrt_release
+			rm -f /etc/openwrt_release
+			DISTRIB_DESCRIPTION="$CODENAME ( OpenWRT $DISTRIB_REVISION )"
+			echo 'DISTRIB_ID="'"$DISTRIB_ID"'"' >> /etc/openwrt_release
+			echo 'DISTRIB_RELEASE="'"$DISTRIB_RELEASE"'"' >> /etc/openwrt_release
+			echo 'DISTRIB_REVISION="'"$DISTRIB_REVISION"'"' >> /etc/openwrt_release
+			echo 'DISTRIB_CODENAME="'"$DISTRIB_CODENAME"'"' >> /etc/openwrt_release
+			echo 'DISTRIB_TARGET="'"$DISTRIB_TARGET"'"' >> /etc/openwrt_release
+			echo 'DISTRIB_DESCRIPTION="'"$DISTRIB_DESCRIPTION"'"' >> /etc/openwrt_release
+			log "EXT-ROOT drive exists"
+			mkdir -p /mnt/sda2
+			mount /dev/sda2 /mnt/sda2
+			tar -C /overlay -cvf - . | tar -C /mnt/sda2 -xf -
+			uci add fstab mount
+			uci set fstab.@mount[-1].target="/overlay"
+			uci set fstab.@mount[-1].device="/dev/sda2"
+			uci set fstab.@mount[-1].fstype="ext4"
+			uci set fstab.@mount[-1].options="rw,sync"
+			uci set fstab.@mount[-1].enabled="1"
+			uci set fstab.@mount[-1].enabled_fsck="0"
+			uci commit fstab
+			cp -f /etc/extroot/opkg.conf /etc/opkg.conf
+			uci set wireless.@wifi-iface[0].disabled=0; uci commit wireless; /sbin/wifi up
+			echo "1" > /etc/pass1
+			reboot -f
+		else
+			log "No EXT-ROOT drive"
+		fi
+		exit 0
+	fi
+	log "Pass 2 with ext-root"
+	echo "1" > /tmp/bootend.file
+	uci delete repository.installed
+	uci set repository.installed=repos
+	uci set repository.installed.total=0
+
+	uci delete repository.feature
+	uci set repository.feature=feat
+	uci set repository.feature.total=0
+
+	uci delete repository.package
+	uci set repository.package=pack
+
+	uci delete repository.uninstalled
+	uci set repository.uninstalled=flg
+
+	uci delete repository.delay
+	uci set repository.delay=dly
+	uci commit repository
+}
+
+stop() {
+	log "Stopping xext-root"
+}

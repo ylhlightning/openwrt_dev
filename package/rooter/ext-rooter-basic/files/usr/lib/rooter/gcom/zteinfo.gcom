@@ -1,0 +1,54 @@
+opengt
+ set com 115200n81
+ set comecho off
+ set senddelay 0.02
+ waitquiet 0.2 0.2
+
+let $x=$env("ATMODE")
+let $y=$env("ATBAND")
+
+if $x = "xx" goto band
+ send $x
+send "\"^m"
+ get 5 "" $t
+
+:band
+if $y = "xx" goto noband
+ send $y
+send "\"^m"
+ get 5 "" $t
+
+:noband
+ let $c="AT+CSQ^m"
+ gosub readatcmdx
+
+ let $c="AT+ZPAS?^m"
+ gosub readatcmdx
+
+ let $c="AT+ZRSSI^m"
+ gosub readatcmdx
+
+ let $c="AT+ZRSSI?^m"
+ gosub readatcmdx
+
+ let $c="AT+ZSNT?^m"
+ gosub readatcmdx
+
+ exit 0
+
+:readatcmdx
+ send $c
+:rloop
+ get 1 "^m" $s
+ let j=len($s)
+ let i=0
+:loop10
+ if $mid($s,i,5) = "ERROR" goto loop11
+ if $mid($s,i,2) = "OK" goto loop11
+ let i=i+1
+ if i < j goto loop10
+ print $s
+ goto rloop
+:loop11
+ print $s
+ return

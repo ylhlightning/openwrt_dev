@@ -1,0 +1,284 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+PROG=/usr/bin/aria2c
+CONFIGFILE="/var/aria2.conf"
+
+xappend() {
+       local value="$1"
+       echo "${value#--}" >> $CONFIGFILE
+}
+
+append_param() {
+       local section="$1"
+       local option="$2"
+       local switch="$3"
+       local _loctmp
+       config_get _loctmp "$section" "$option"
+       [ -z "$_loctmp" ] && return 0
+       xappend "$switch=$_loctmp"
+}
+
+append_bool() {
+       local section="$1"
+       local option="$2"
+       local switch="$3"
+       local _loctmp
+       config_get_bool _loctmp "$section" "$option"
+       { [ -z "$_loctmp" ] && return 0 ; } ||
+               { [ "$_loctmp" -gt 0 ] && _loctmp=true ; } ||
+               { [ "$_loctmp" -eq 0 ] && _loctmp=false ; }
+       xappend "$switch=$_loctmp"
+}
+
+__combine_list() {
+       local val="$1"
+       local var="$2"
+       local sep="$3"
+       eval "export -n $var=\${$var}\${$var:+$sep}\$val"
+}
+
+append_list() {
+       local section="$1"
+       local option="$2"
+       local switch="$3"
+       local sep="${4:-,}"
+       local _loctmp
+       config_list_foreach "$section" "$option" __combine_list "_loctmp" "$sep"
+       [ -z "$_loctmp" ] && return 0
+       eval "xappend \"\$switch=\$_loctmp\""
+}
+
+aria2() {
+       local cfg="$1"
+
+       # exit early.
+       config_get enable "$cfg" enable 0
+       [ "$enable" -eq 0 ] && { stop; exit 0; }
+
+       rm "$CONFIGFILE"
+       echo "# Basic options" >>$CONFIGFILE
+       append_param "$cfg" dir "--dir"
+       append_param "$cfg" input_file "--input-file"
+       append_param "$cfg" log "--log"
+       append_param "$cfg" max_concurrent_downloads "--max-concurrent-downloads"
+       append_bool "$cfg" check_integrity "--check-integrity"
+       append_bool "$cfg" "continue" "--continue"
+       append_param "$cfg" help "--help"
+       append_param "$cfg" all_proxy "--all-proxy"
+
+       echo "# Advanced options" >>$CONFIGFILE
+       append_bool "$cfg" allow_overwrite "--allow-overwrite"
+       append_bool "$cfg" allow_piece_length_change "--allow-piece-length-change"
+       append_bool "$cfg" always_resume "--always-resume"
+       append_bool "$cfg" async_dns "--async-dns"
+       append_list "$cfg" async_dns_server "--async-dns-server" ","
+       append_bool "$cfg" auto_file_renaming "--auto-file-renaming"
+       append_param "$cfg" auto_save_interval "--auto-save-interval"
+       append_bool "$cfg" conditional_get "--conditional-get"
+       append_param "$cfg" conf_path "--conf-path"
+       append_param "$cfg" console_log_level "--console-log-level"
+       append_bool "$cfg" daemon "--daemon"
+       append_bool "$cfg" deferred_input "--deferred-input"
+       append_bool "$cfg" disable_ipv6 "--disable-ipv6"
+       append_param "$cfg" disk_cache "--disk-cache"
+       append_param "$cfg" download_result "--download-result"
+       append_bool "$cfg" enable_mmap "--enable-mmap"
+       append_param "$cfg" event_poll "--event-poll"
+       append_param "$cfg" file_allocation "--file-allocation"
+       append_bool "$cfg" force_save "--force-save"
+       append_param "$cfg" gid "--gid"
+       append_bool "$cfg" hash_check_only "--hash-check-only"
+       append_bool "$cfg" human_readable "--human-readable"
+       append_param "$cfg" interface "--interface"
+       append_param "$cfg" max_download_result "--max-download-result"
+       append_param "$cfg" max_resume_failure_tries "--max-resume-failure-tries"
+       append_param "$cfg" log_level "--log-level"
+       append_param "$cfg" on_bt_download_complete "--on-bt-download-complete"
+       append_param "$cfg" on_download_complete "--on-download-complete"
+       append_param "$cfg" on_download_error "--on-download-error"
+       append_param "$cfg" on_download_pause "--on-download-pause"
+       append_param "$cfg" on_download_start "--on-download-start"
+       append_param "$cfg" on_download_stop "--on-download-stop"
+       append_param "$cfg" piece_length "--piece-length"
+       append_bool "$cfg" show_console_readout "--show-console-readout"
+       append_param "$cfg" summary_interval "--summary-interval"
+       append_bool "$cfg" force_sequential "--force-sequential"
+       append_param "$cfg" max_overall_download_limit "--max-overall-download-limit"
+       append_param "$cfg" max_download_limit "--max-download-limit"
+       append_bool "$cfg" no_conf "--no-conf"
+       append_param "$cfg" no_file_allocation_limit "--no-file-allocation-limit"
+       append_bool "$cfg" parameterized_uri "--parameterized-uri"
+       append_bool "$cfg" quiet "--quiet"
+       append_bool "$cfg" realtime_chunk_checksum "--realtime-chunk-checksum"
+       append_bool "$cfg" remove_control_file "--remove-control-file"
+       append_param "$cfg" save_session "--save-session"
+       append_param "$cfg" save_session_interval "--save-session-interval"
+       append_param "$cfg" stop "--stop"
+       append_param "$cfg" stop_with_process "--stop-with-process"
+       append_bool "$cfg" truncate_console_readout "--truncate-console-readout"
+       append_param "$cfg" version "--version"
+}
+
+http_ftp() {
+       local cfg="$1"
+
+       echo "# HTTP/FTP options" >>$CONFIGFILE
+       append_param "$cfg" timeout "--timeout"
+       append_bool "$cfg" reuse_uri "--reuse-uri"
+       append_param "$cfg" max_tries "--max-tries"
+       append_param "$cfg" retry_wait "--retry-wait"
+       append_bool "$cfg" remote_time "--remote-time"
+       append_param "$cfg" max_file_not_found "--max-file-not-found"
+       append_param "$cfg" lowest_speed_limit "--lowest-speed-limit"
+       append_param "$cfg" max_connection_per_server "--max-connection-per-server"
+       append_param "$cfg" split "--split"
+       append_param "$cfg" min_split_size "--min-split-size"
+       append_bool "$cfg" no_netrc "--no-netrc"
+       append_param "$cfg" proxy_method "--proxy-method"
+       append_param "$cfg" connect_timeout "--connect-timeout"
+       append_param "$cfg" all_proxy_user "--all-proxy-user"
+       append_param "$cfg" all_proxy_passwd "--all-proxy-passwd"
+       append_list "$cfg" no_proxy "--no-proxy"
+       append_param "$cfg" server_stat_of "--server-stat-of"
+       append_param "$cfg" server_stat_if "--server-stat-if"
+       append_param "$cfg" server_stat_timeout "--server-stat-timeout"
+       append_param "$cfg" uri_selector "--uri-selector"
+       append_param "$cfg" stream_piece_selector "--stream-piece-selector"
+       append_param "$cfg" checksum "--checksum"
+       append_bool "$cfg" dry_run "--dry-run"
+       append_param "$cfg" out "--out"
+
+       echo "# HTTP specific options" >>$CONFIGFILE
+       append_param "$cfg" ca_certificate "--ca-certificate"
+       append_param "$cfg" certificate "--certificate"
+       append_bool "$cfg" check_certificate "--check-certificate"
+       append_param "$cfg" private_key "--private-key"
+       append_param "$cfg" http_proxy "--http-proxy"
+       append_param "$cfg" http_proxy_user "--http-proxy-user"
+       append_param "$cfg" http_proxy_passwd "--http-proxy-passwd"
+       append_param "$cfg" load_cookies "--load-cookies"
+       append_param "$cfg" save_cookies "--save-cookies"
+       append_bool "$cfg" use_head "--use-head"
+       append_param "$cfg" header "--header"
+       append_bool "$cfg" enable_http_keep_alive "--enable-http-keep-alive"
+       append_bool "$cfg" enable_http_pipelining "--enable-http-pipelining"
+       append_param "$cfg" user_agent "--user-agent"
+       append_bool "$cfg" http_no_cache "--http-no-cache"
+       append_param "$cfg" referer "--referer"
+       append_bool "$cfg" http_accept_gzip "--http-accept-gzip"
+       append_bool "$cfg" http_auth_challenge "--http-auth-challenge"
+       append_param "$cfg" http_user "--http-user"
+       append_param "$cfg" http_passwd "--http-passwd"
+
+       echo "# FTP specific options" >>$CONFIGFILE
+       append_param "$cfg" ftp_user "--ftp-user"
+       append_param "$cfg" ftp_passwd "--ftp-passwd"
+       append_bool "$cfg" ftp_pasv "--ftp-pasv"
+       append_param "$cfg" ftp_type "--ftp-type"
+       append_bool "$cfg" ftp_reuse_connection "--ftp-reuse-connection"
+       append_param "$cfg" ftp_proxy "--ftp-proxy"
+       append_param "$cfg" ftp_proxy_user "--ftp-proxy-user"
+       append_param "$cfg" ftp_proxy_passwd "--ftp-proxy-passwd"
+}
+
+bt_metalink() {
+       local cfg="$1"
+
+       echo "# BT/Metalink options" >>$CONFIGFILE
+       append_list "$cfg" select_file "--select-file" ","
+       append_bool "$cfg" show_files "--show-files"
+
+       echo "# BT specific options" >>$CONFIGFILE
+       append_bool "$cfg" bt_enable_lpd "--bt-enable-lpd"
+       append_list "$cfg" bt_exclude_tracker "--bt-exclude-tracker" ","
+       append_param "$cfg" bt_external_ip "--bt-external-ip"
+       append_bool "$cfg" bt_hash_check_seed "--bt-hash-check-seed"
+       append_param "$cfg" bt_lpd_interface "--bt-lpd-interface"
+       append_param "$cfg" bt_max_open_files "--bt-max-open-files"
+       append_param "$cfg" bt_max_peers "--bt-max-peers"
+       append_bool "$cfg" bt_metadata_only "--bt-metadata-only"
+       append_param "$cfg" bt_min_crypto_level "--bt-min-crypto-level"
+       append_param "$cfg" bt_prioritize_piece "--bt-prioritize-piece"
+       append_bool "$cfg" bt_remove_unselected_file "--bt-remove-unselected-file"
+       append_bool "$cfg" bt_require_crypto "--bt-require-crypto"
+       append_param "$cfg" bt_request_peer_speed_limit "--bt-request-peer-speed-limit"
+       append_bool "$cfg" bt_save_metadata "--bt-save-metadata"
+       append_bool "$cfg" bt_seed_unverified "--bt-seed-unverified"
+       append_param "$cfg" bt_stop_timeout "--bt-stop-timeout"
+       append_list "$cfg" bt_tracker "--bt-tracker" ","
+       append_param "$cfg" bt_tracker_connect_timeout "--bt-tracker-connect-timeout"
+       append_param "$cfg" bt_tracker_interval "--bt-tracker-interval"
+       append_param "$cfg" bt_tracker_timeout "--bt-tracker-timeout"
+       append_param "$cfg" dht_entry_point "--dht-entry-point"
+       append_param "$cfg" dht_entry_point "--dht-entry-point"
+       append_param "$cfg" dht_file_path "--dht-file-path"
+       append_param "$cfg" dht_file_path "--dht-file-path"
+       append_param "$cfg" dht_listen_addr "--dht-listen-addr"
+       append_list "$cfg" dht_listen_port "--dht-listen-port" ","
+       append_param "$cfg" dht_message_timeout "--dht-message-timeout"
+       append_param "$cfg" enable_dht "--enable-dht"
+       append_param "$cfg" enable_dht "--enable-dht"
+       append_bool "$cfg" enable_peer_exchange "--enable-peer-exchange"
+       append_param "$cfg" follow_torrent "--follow-torrent"
+       append_param "$cfg" index_out "--index-out"
+       append_list "$cfg" listen_port "--listen-port" ","
+       append_param "$cfg" max_overall_upload_limit "--max-overall-upload-limit"
+       append_param "$cfg" max_upload_limit "--max-upload-limit"
+       append_param "$cfg" peer_id_prefix "--peer-id-prefix"
+       append_param "$cfg" seed_ratio "--seed-ratio"
+       append_param "$cfg" seed_time "--seed-time"
+       append_param "$cfg" torrent_file "--torrent-file"
+
+       echo "# Metalink specific options" >>$CONFIGFILE
+       append_param "$cfg" follow_metalink "--follow-metalink"
+       append_param "$cfg" metalink_base_uri "--metalink-base-uri"
+       append_param "$cfg" metalink_file "--metalink-file"
+       append_param "$cfg" metalink_language "--metalink-language"
+       append_list "$cfg" metalink_location "--metalink-location" ","
+       append_param "$cfg" metalink_os "--metalink-os"
+       append_param "$cfg" metalink_version "--metalink-version"
+       append_param "$cfg" metalink_preferred_protocol "--metalink-preferred-protocol"
+       append_bool "$cfg" metalink_enable_unique_protocol "--metalink-enable-unique-protocol"
+}
+
+rpc() {
+       local cfg="$1"
+
+       config_get_bool enable_rpc "$cfg" enable_rpc 0
+       [ $enable_rpc -gt 0 ] || return
+
+       echo "# RPC options" >>$CONFIGFILE
+       xappend "--enable-rpc=true"
+       append_bool "$cfg" pause "--pause"
+       append_bool "$cfg" rpc_allow_origin_all "--rpc-allow-origin-all"
+       append_bool "$cfg" rpc_listen_all "--rpc-listen-all"
+       append_param "$cfg" rpc_listen_port "--rpc-listen-port"
+       append_param "$cfg" rpc_max_request_size "--rpc-max-request-size"
+       append_bool "$cfg" rpc_save_upload_metadata "--rpc-save-upload-metadata"
+       append_bool "$cfg" rpc_secure "--rpc-secure"
+       append_param "$cfg" rpc_private_key "--rpc-private-key"
+       append_param "$cfg" rpc_certificate "--rpc-certificate"
+       config_get rpc_usr "$cfg" rpc_user
+       config_get rpc_passwd "$cfg" rpc_passwd
+       [ -n "$rpc_usr" ] && [ -n "rpc_passwd" ] && {
+               xappend "--rpc-user=$rpc_usr";
+               xappend "--rpc-passwd=$rpc_passwd";
+       }
+}
+
+start() {
+       config_load aria2
+       config_foreach aria2 aria2
+       config_foreach http_ftp http_ftp
+       config_foreach bt_metalink bt_metalink
+       config_foreach rpc rpc
+       service_start "$PROG" -D --conf-path "$CONFIGFILE"
+}
+
+stop() {
+       # send INT to allow for session preservation.
+       killall -INT aria2c
+       sleep 3
+}

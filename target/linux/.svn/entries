@@ -1,0 +1,185 @@
+10
+
+dir
+45579
+svn://svn.openwrt.org/openwrt/trunk/target/linux
+svn://svn.openwrt.org/openwrt
+
+
+
+2015-04-24T07:47:25.538612Z
+45575
+rmilecki
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3c298f89-4303-0410-b956-a3cf2f4a3e73
+
+ppc44x
+dir
+
+omap24xx
+dir
+
+orion
+dir
+
+octeon
+dir
+
+oxnas
+dir
+
+pxa
+dir
+
+kirkwood
+dir
+
+ar7
+dir
+
+bcm53xx
+dir
+
+adm8668
+dir
+
+rb532
+dir
+
+netlogic
+dir
+
+ixp4xx
+dir
+
+brcm2708
+dir
+
+sunxi
+dir
+
+au1000
+dir
+
+mxs
+dir
+
+adm5120
+dir
+
+brcm63xx
+dir
+
+mpc85xx
+dir
+
+Makefile
+file
+
+
+
+
+2015-04-24T15:43:30.000000Z
+55fb5f5cfdb9d1cfb51fc1b22e4dbdec
+2010-08-06T21:36:35.923261Z
+22518
+lars
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+373
+
+realview
+dir
+
+brcm47xx
+dir
+
+mvebu
+dir
+
+ipq806x
+dir
+
+imx6
+dir
+
+ath25
+dir
+
+x86
+dir
+
+xburst
+dir
+
+lantiq
+dir
+
+arm64
+dir
+
+ar71xx
+dir
+
+ramips
+dir
+
+omap
+dir
+
+uml
+dir
+
+malta
+dir
+
+mcs814x
+dir
+
+gemini
+dir
+
+generic
+dir
+
+ppc40x
+dir
+
+at91
+dir
+
+cns3xxx
+dir
+

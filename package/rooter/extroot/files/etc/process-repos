@@ -1,0 +1,78 @@
+#!/bin/sh
+
+log() {
+	logger -t "Process-repos" "$@"
+}
+
+if [ ! -e /mnt/sda1/repository ]; then
+	uci set repository.total.number="0"
+	uci commit repository
+	exit 0
+fi
+
+uci delete repository.installed
+uci set repository.installed=repos
+uci set repository.installed.total=0
+
+uci delete repository.feature
+uci set repository.feature=feat
+uci set repository.feature.total=0
+
+uci delete repository.package
+uci set repository.package=pack
+
+uci delete repository.uninstalled
+uci set repository.uninstalled=flg
+
+uci delete repository.delay
+uci set repository.delay=dly
+uci commit repository
+
+n=0
+inst=0
+feat=0
+dir="/mnt/sda1/repository"
+
+if [ -e /mnt/sda1/version ]; then
+	source /mnt/sda1/version
+	uci set repository.total.version="$VERSION"
+fi
+
+for f in "$dir"/*; do
+	n=`expr $n + 1`
+	l=0
+	delay=0
+		while read line; do
+		case "$l" in
+			"0")
+				title=$line
+			;;
+			"1")
+				package=$line
+			;;
+			"2")
+				delay=$line
+			;;
+		esac
+		l=`expr $l + 1`
+	done < $f 
+	installed=$(opkg list-installed | grep $package)
+	if [ ! -z "$installed" ]; then
+		inst=`expr $inst + 1`
+		ent="f"$inst
+		uci set repository.installed.total="$inst"
+		uci set repository.installed.$ent="$title"
+		uci commit repository
+	else
+		feat=`expr $feat + 1`
+		ent="f"$feat
+		uci set repository.feature.total="$feat"
+		uci set repository.feature.$ent="$title"
+		uci set repository.package.$ent="$package"
+		uci set repository.delay.$ent="$delay"
+		uci set repository.uninstalled.$ent="0"
+		uci commit repository
+	fi
+done
+uci set repository.total.number="$n"
+uci commit repository

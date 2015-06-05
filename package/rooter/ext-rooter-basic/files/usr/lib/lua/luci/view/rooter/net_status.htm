@@ -1,0 +1,459 @@
+<%+header%>
+
+<script type="text/javascript" src="<%=resource%>/xhr.js"></script>
+<script type="text/javascript">//<![CDATA[
+
+	modemtype=0;
+	cell=0;
+	atsend=0;
+	portx="-";
+
+	XHR.poll(2, '<%=luci.dispatcher.build_url("admin", "modem", "get_csq")%>', null,
+		function(x, rv)
+		{
+			document.getElementById('port').innerHTML=rv.port;
+			document.getElementById('csq').innerHTML=rv.csq;
+			document.getElementById('per').innerHTML=rv.per;
+			document.getElementById('rssi').innerHTML=rv.rssi;
+			document.getElementById('modem').innerHTML=rv.modem;
+			document.getElementById('cops').innerHTML=rv.cops;
+			document.getElementById('mode').innerHTML=rv.mode;
+			document.getElementById('lac').innerHTML=rv.lac;
+			document.getElementById('cid').innerHTML=rv.cid;
+			document.getElementById('lacn').innerHTML=rv.lacn;
+			document.getElementById('cidn').innerHTML=rv.cidn;
+			document.getElementById('mcc').innerHTML=rv.mcc;
+			document.getElementById('mnc').innerHTML=rv.mnc;
+			document.getElementById('rnc').innerHTML=rv.rnc;
+			document.getElementById('rncn').innerHTML=rv.rncn;
+			document.getElementById('down').innerHTML=rv.down;
+			document.getElementById('up').innerHTML=rv.up;
+			document.getElementById('ecio').innerHTML=rv.ecio;
+			document.getElementById('rscp').innerHTML=rv.rscp;
+			document.getElementById('ecio1').innerHTML=rv.ecio1;
+			document.getElementById('rscp1').innerHTML=rv.rscp1;
+			document.getElementById('conntype').innerHTML=rv.conntype;
+			document.getElementById('chan').innerHTML=rv.channel;
+			reslt=rv.result
+			if (reslt != " " )
+			{
+				document.getElementById('attxt').value=rv.result;
+				atsend=0;
+			}
+
+			modemtype=rv.modtype;
+
+			document.getElementById('apply1').value="Apply Mode Change";
+			document.getElementById('apply1').disabled=false;
+			var netm = rv.netmode;
+			var mode = "-";
+			switch(netm)
+			{
+				case "0":
+					mode = "Unknown";
+				break;
+				case "1":
+					mode = "Automatic";
+				break;
+				case "2":
+					mode = "2G Preferred";
+				break;
+				case "3":
+					mode = "2G Only";
+				break;
+				case "4":
+					mode = "3G Preferred";
+				break;
+				case "5":
+					mode = "3G Only";
+				break;
+				case "6":
+					mode = "4G Preferred";
+				break;
+				case "7":
+					mode = "4G Only";
+				break;
+				case "10":
+					mode = "Changing Mode ...";
+					document.getElementById('apply1').value="Applying Change";
+					document.getElementById('apply1').disabled=true;
+				break;
+
+			}
+			document.getElementById('netmode').innerHTML=mode;
+
+			portx=rv.port
+			if (portx == "-" )
+			{
+				document.getElementById('inc1').style.display="none";
+				document.getElementById('dec1').style.display="none";
+				document.getElementById("sendcmdat").disabled=true;
+				document.getElementById('atcmd').value=" ";
+				document.getElementById('attxt').value=" ";
+			}
+			else
+			{
+				document.getElementById('inc1').style.display="block";
+				document.getElementById('dec1').style.display="block";
+				if (portx.indexOf("/dev/") > -1)
+				{
+					document.getElementById("sendcmdat").disabled=false;
+				}
+			}
+
+			cell = rv.cell;
+			if ( cell == "-" )
+			{
+				document.getElementById('net1').style.display="none";
+				document.getElementById('net2').style.display="none";
+				document.getElementById('net3').style.display="none";
+				document.getElementById('apply1').style.display="none";
+			}
+			if ( cell == "0" )
+			{
+				document.getElementById('net1').style.display="none";
+				document.getElementById('net2').style.display="none";
+				document.getElementById('net3').style.display="none";
+				document.getElementById('apply1').style.display="none";
+			}
+			if ( cell == "1" )
+			{
+				document.getElementById('net1').style.display="block";
+				document.getElementById('net2').style.display="none";
+				document.getElementById('net3').style.display="none";
+				document.getElementById('apply1').style.display="block";
+			}
+			if ( cell == "2" )
+			{
+				document.getElementById('net1').style.display="none";
+				document.getElementById('net2').style.display="none";
+				document.getElementById('net3').style.display="block";
+				document.getElementById('apply1').style.display="block";
+			}
+			if ( cell == "3" )
+			{
+				document.getElementById('net1').style.display="none";
+				document.getElementById('net2').style.display="block";
+				document.getElementById('net3').style.display="none";
+				document.getElementById('apply1').style.display="block";
+			}
+		}
+	);
+
+	function clear_data()
+	{
+		document.getElementById('port').innerHTML="Changing Port";
+		document.getElementById('csq').innerHTML="-";
+		document.getElementById('per').innerHTML="-";
+		document.getElementById('rssi').innerHTML="-";
+		document.getElementById('modem').innerHTML="-";
+		document.getElementById('cops').innerHTML="-";
+		document.getElementById('mode').innerHTML="-";
+		document.getElementById('lac').innerHTML="-";
+		document.getElementById('cid').innerHTML="-";
+		document.getElementById('lacn').innerHTML="-";
+		document.getElementById('cidn').innerHTML="-";
+		document.getElementById('mcc').innerHTML="-";
+		document.getElementById('mnc').innerHTML="-";
+		document.getElementById('rnc').innerHTML="-";
+		document.getElementById('rncn').innerHTML="-";
+		document.getElementById('down').innerHTML="-";
+		document.getElementById('up').innerHTML="-";
+		document.getElementById('ecio').innerHTML="-";
+		document.getElementById('rscp').innerHTML="-";
+		document.getElementById('ecio1').innerHTML="-";
+		document.getElementById('rscp1').innerHTML="-";
+		document.getElementById('netmode').innerHTML="-";
+		document.getElementById('conntype').innerHTML=" ";
+		document.getElementById('chan').innerHTML=" ";
+	}
+
+	function increase(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Increasing...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "change_port")%>',
+			{ set: 2 },
+			function()
+			{
+				btn.disabled = false;
+				btn.value    = '<%:Increase%>';
+				clear_data();
+			}
+		);
+
+		return false;
+	}
+
+	function decrease(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Decreasing...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "change_port")%>',
+			{ set: 1 },
+			function()
+			{
+				btn.disabled = false;
+				btn.value    = '<%:Decrease%>';
+				clear_data();
+			}
+		);
+
+		return false;
+	}
+
+	function modemtoggle(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Changing...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "change_modem")%>',
+			null,
+			function(x, rv)
+			{
+				btn.disabled = false;
+				btn.value    = '<%:Next Modem%>';
+			}
+		);
+
+		return false;
+	}
+
+	function modemtoggledn(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Changing...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "change_modemdn")%>',
+			null,
+			function(x, rv)
+			{
+				btn.disabled = false;
+				btn.value    = '<%:Prev Modem%>';
+			}
+		);
+
+		return false;
+	}
+
+	function applyc(btn)
+	{
+		var nmode=0;
+		switch(cell)
+		{
+			case "1":
+				nmode=document.getElementById("net1").value;
+				break;
+			case "2":
+				nmode=document.getElementById("net3").value;
+				break;
+			case "3":
+				nmode=document.getElementById("net2").value;
+				break;
+		}
+		var mt=(Number(modemtype)*16) + Number(nmode);
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "change_mode")%>',
+			{ set: mt },
+			function()
+			{
+			}
+		);
+
+		return false;
+	}
+
+	function sendcmd(btn)
+	{
+		var s = document.getElementById("atcmd").value;
+		if ( s.length == 0 )
+		{
+			alert("You must enter an AT-Command!!");
+			return false;
+		}
+		atsend=1;
+		document.getElementById("attxt").value="Waiting for a Response";
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "send_atcmd")%>',
+			{ set: s },
+			function()
+			{
+			}
+		);
+
+		return false;
+	}
+
+//]]></script>
+
+<form method="post" action="<%=REQUEST_URI%>">
+<div class="cbi-map" id="cbi-modem">
+<h2><a id="content" name="content">Signal/Cell Information</a></h2>
+<div class="cbi-map-descr">Current Connection</div>
+
+<fieldset class="cbi-section" id="cbi-mod">
+	<legend>General Information</legend>
+	<table width="550"  border="0">
+  	<tr>
+    		<td width="30%"><div align="right">Modem :</div></td>
+    		<td width="30%"><ul id="modem"></ul></td>
+    		<td width="17%"><strong id="conntype"></strong></td>
+		<td width="12%">
+			<input type="button" class="cbi-button cbi-button-apply" value="<%:Prev Modem%>" onclick="return modemtoggledn(this)" />
+		</td>
+		<td width="11%">
+			<input type="button" class="cbi-button cbi-button-apply" value="<%:Next Modem%>" onclick="return modemtoggle(this)" />
+		</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">Provider : </div></td>
+    		<td><ul id="cops"></ul></td>
+    		<td>&nbsp;</td>
+		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">Network : </div></td>
+    		<td><ul id="mode"></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">Comm Port :</div></td>
+    		<td><ul id="port"></ul></td>
+    		<td>
+			<input type="button" id="dec1" class="cbi-button cbi-button-apply" value="<%:Decrease%>" onclick="return decrease(this)" />
+		</td>
+		<td>
+			<input type="button" id="inc1" class="cbi-button cbi-button-apply" value="<%:Increase%>" onclick="return increase(this)" />
+		</td>
+  	</tr>
+	</table>
+</fieldset>
+
+<fieldset class="cbi-section" id="cbi-sig">
+	<legend>Signal Information</legend>
+	<table width="550"  border="0">
+  	<tr>
+    		<td width="30%"><div align="right">CSQ :</div></td>
+    		<td width="69%"><ul id="csq"></ul></td>
+    		<td width="1%">&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">Signal Strength : </div></td>
+    		<td><ul id="per"></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">RSSI : </div></td>
+    		<td><ul id="rssi"></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">ECIO : </div></td>
+    		<td><ul><span id="ecio" class="r"></span><span id="ecio1" class="r"></span></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">RSCP : </div></td>
+    		<td><ul><span id="rscp" class="r"></span><span id="rscp1" class="r"></span></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+	</table>
+</fieldset>
+
+<fieldset class="cbi-section" id="cbi-cell">
+	<legend>Cell Information</legend>
+	<table width="550"  border="0">
+  	<tr>
+    		<td width="30%"><div align="right">MCC MNC :</div></td>
+    		<td width="69%"><ul><span id="mcc" class="r"></span><span id="mnc" class="r"></span></ul></td>
+    		<td width="1%">&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">RNC :</div></td>
+    		<td><ul><span id="rnc" class="r"></span><span id="rncn" class="r"></span></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">LAC :</div></td>
+    		<td><ul><span id="lac" class="r"></span><span id="lacn" class="r"></span></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">Cell ID : </div></td>
+    		<td><ul><span id="cid" class="r"></span><span id="cidn" class="r"></span></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">UMTS Channel : </div></td>
+    		<td><ul id="chan"></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+  	<tr>
+    		<td><div align="right">Maximum Qos : </div></td>
+    		<td><ul><span id="down" class="r"></span><span id="up" class="r"></span></ul></td>
+    		<td>&nbsp;</td>
+  	</tr>
+	</table>
+</fieldset>
+
+<fieldset class="cbi-section" id="cbi-mode">
+	<legend>Cellular Mode</legend>
+	<table width="550"  border="0">
+  	<tr>
+    		<td width="30%"><div align="right">Current Cellular Mode :</div></td>
+    		<td width="20%"><ul><span id="netmode" class="r"></span></ul></td>
+    		<td width="50%">&nbsp;</td>
+  	</tr>
+	<tr>
+    		<td><div align="right">Change Cellular Mode :</div></td>
+    		<td>
+		<select name="net_mode" id="net1" style="width:auto">
+			<option value="1" selected="selected"><%:Automatic%></option>
+			<option value="2"><%:2G Preferred%></option>
+			<option value="3"><%:2G Only%></option>
+			<option value="4"><%:3G Preferred%></option>
+			<option value="5"><%:3G Only%></option>
+		</select>
+		<select name="net_mode" id="net2" style="width:auto">
+			<option value="1" selected="selected"><%:Automatic%></option>
+			<option value="2"><%:2G Preferred%></option>
+			<option value="3"><%:2G Only%></option>
+			<option value="4"><%:3G Preferred%></option>
+			<option value="5"><%:3G Only%></option>
+			<option value="6"><%:4G Preferred%></option>
+			<option value="7"><%:4G Only%></option>
+		</select>
+		<select name="net_mode" id="net3" style="width:auto">
+			<option value="1" selected="selected"><%:Automatic%></option>
+			<option value="4"><%:3G Preferred%></option>
+			<option value="5"><%:3G Only%></option>
+			<option value="6"><%:4G Preferred%></option>
+			<option value="7"><%:4G Only%></option>
+		</select>
+		</td>
+		<td><input type="button" id="apply1" class="cbi-button cbi-button-apply" value="<%:Apply Mode Change%>" onclick="return applyc(this)" /></td>
+		<td>&nbsp;</td>
+  	</tr>
+
+ 	</table>
+</fieldset>
+
+<fieldset class="cbi-section" id="cbi-term">
+	<legend>AT-Command Terminal</legend>
+	<table width="550"  border="0">
+  	<tr>
+    		<td width="15%"><div align="right">AT-Command : </div></td>
+    		<td width="20%"><input type="text" name="atcmd" id="atcmd" maxlength="70"></input></td>
+    		<td width="65%"><input type="button" id="sendcmdat" class="cbi-button cbi-button-apply" value="<%:Send Command%>" onclick="return sendcmd(this)" /></td>
+  	</tr>
+ 	</table>
+
+	<table id="cmdtxt" width="700"  border="0" style="display:table;">
+  	<tr>
+    		<td width="100%">
+		<textarea readonly name="attxt" id="attxt" rows="6" style="width: 600px;" maxlength="160"></textarea> 
+		</td>
+	</tr>
+	</table>
+
+</fieldset>
+
+</div>
+</form>
+<%+footer%>

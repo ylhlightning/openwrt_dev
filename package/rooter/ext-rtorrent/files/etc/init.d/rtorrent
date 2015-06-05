@@ -1,0 +1,12 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+start() {
+  sleep 3
+  screen -dm -t rtorrent nice -19 rtorrent
+}
+
+stop() {
+  killall rtorrent
+}

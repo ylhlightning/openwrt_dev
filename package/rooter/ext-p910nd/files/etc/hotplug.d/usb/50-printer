@@ -1,0 +1,32 @@
+#!/bin/sh
+
+log() {
+	logger -t "Printer" "$@"
+}
+
+if [ ! -f /tmp/bootend.file ]; then
+	sleep 10
+	while [ ! -f /tmp/bootend.file ]; do
+		sleep 1
+	done
+	log "Delay Print Server for boot up"
+fi
+
+case "$ACTION" in
+        add)
+                # Check if lp device is plugged in and p910nd is not already started
+                if [ ! -f /var/run/p9100d.pid -a -d /sys$DEVPATH/*/lp0 ]; then
+                        log "USB Printer device plugged in, starting p910nd"
+                        /etc/init.d/p910nd start
+                fi
+                ;;
+        remove)
+                # Check if lp device is unplugged and if p910nd is still running
+                if [ ! -d /sys$DEVPATH/*/lp0 -a -f /var/run/p9100d.pid ]; then
+                        log "USB Printer device unplugged, stopping p910nd"
+                        /etc/init.d/p910nd stop
+                        # p910nd does not seem to remove .pid file when stopped, removing it manually
+                        rm /var/run/p9100d.pid
+                fi
+                ;;
+esac

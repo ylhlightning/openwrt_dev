@@ -1,0 +1,222 @@
+<%+header%>
+
+<script type="text/javascript" src="<%=resource%>/xhr.js"></script>
+<script type="text/javascript">//<![CDATA[
+
+	XHR.poll(2, '<%=luci.dispatcher.build_url("admin", "modem", "check_misc")%>', null,
+		function(x, rv)
+		{
+			document.getElementById('conntype').innerHTML=rv.conntype;
+			stat = rv.active
+			gpio = rv.gpio
+			if ( stat == "0" )
+			{
+				document.getElementById('active').innerHTML="No Modem Present";
+				document.getElementById("conn").disabled=true;
+				document.getElementById("disconn").disabled=true;
+				if ( gpio == "0" )
+				{
+					document.getElementById('pwrtoggle').style.display="none";
+					document.getElementById('pwrtoggle1').style.display="none";
+				}
+				if ( gpio == "1" )
+				{
+					document.getElementById('pwrtoggle').style.display="block";
+					document.getElementById("pwrtoggle").disabled=true;
+					document.getElementById('pwrtoggle1').style.display="none";
+				}
+				if ( gpio == "2" )
+				{
+					document.getElementById('pwrtoggle').style.display="block";
+					document.getElementById('pwrtoggle1').style.display="block";
+					document.getElementById("pwrtoggle").disabled=true;
+					document.getElementById("pwrtoggle1").disabled=true;
+				}
+			}
+			if ( stat == "1" )
+			{
+				document.getElementById('active').innerHTML="Modem Present/Not Connected";
+				document.getElementById("conn").disabled=false;
+				document.getElementById("disconn").disabled=true;
+				if ( gpio == "0" )
+				{
+					document.getElementById('pwrtoggle').style.display="none";
+					document.getElementById('pwrtoggle1').style.display="none";
+				}
+				if ( gpio == "1" )
+				{
+					document.getElementById("pwrtoggle").disabled=false;
+					document.getElementById('pwrtoggle').style.display="block";
+					document.getElementById('pwrtoggle1').style.display="none";
+				}
+				if ( gpio == "2" )
+				{
+					document.getElementById('pwrtoggle').style.display="block";
+					document.getElementById('pwrtoggle1').style.display="block";
+					document.getElementById("pwrtoggle").disabled=false;
+					document.getElementById("pwrtoggle1").disabled=false;
+				}
+			}
+			if ( stat == "2" )
+			{
+				document.getElementById('active').innerHTML="Modem Connected";
+				document.getElementById("conn").disabled=true;
+				document.getElementById("disconn").disabled=false;
+				if ( gpio == "0" )
+				{
+					document.getElementById('pwrtoggle').style.display="none";
+					document.getElementById('pwrtoggle1').style.display="none";
+				}
+				if ( gpio == "1" )
+				{
+					document.getElementById('pwrtoggle').style.display="block";
+					document.getElementById("pwrtoggle").disabled=false;
+					document.getElementById('pwrtoggle1').style.display="none";
+				}
+				if ( gpio == "2" )
+				{
+					document.getElementById('pwrtoggle').style.display="block";
+					document.getElementById('pwrtoggle1').style.display="block";
+					document.getElementById("pwrtoggle").disabled=false;
+					document.getElementById("pwrtoggle1").disabled=false;
+				}
+			}
+		}
+	); 
+
+	function modemtoggle(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Changing...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "change_misc")%>',
+			null,
+			function(x, rv)
+			{
+				btn.disabled = false;
+				btn.value    = '<%:Next Modem%>';
+			}
+		);
+
+		return false;
+	}
+
+	function modemtoggledn(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Changing...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "change_miscdn")%>',
+			null,
+			function(x, rv)
+			{
+				btn.disabled = false;
+				btn.value    = '<%:Prev Modem%>';
+			}
+		);
+
+		return false;
+	}
+
+	function modemconnect(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Connecting...%>';
+
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "connect")%>',
+			{ set: 1 },
+			function()
+			{
+				btn.disabled = false;
+				btn.value = '<%:Connect Current Modem%>';
+			}
+		);
+		return false;
+	}
+
+	function modemdisconnect(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Disconnecting...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "disconnect")%>',
+			{ set: 1 },
+			function()
+			{
+				btn.disabled = false;
+				btn.value = '<%:Disconnect Current Modem%>';
+			}
+		);
+		return false;
+	}
+
+	function powertoggle(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Toggling...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "pwrtoggle")%>',
+			{ set: 1 },
+			function()
+			{
+				btn.disabled = false;
+				btn.value = '<%:Power Toggle USB 1%>';
+			}
+		);
+		return false;
+	}
+
+	function powertoggle1(btn)
+	{
+		btn.disabled = true;
+		btn.value    = '<%:Toggling...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "modem", "pwrtoggle")%>',
+			{ set: 2 },
+			function()
+			{
+				btn.disabled = false;
+				btn.value = '<%:Power Toggle USB 2%>';
+			}
+		);
+		return false;
+	}
+
+//]]></script>
+
+<form method="post" action="<%=REQUEST_URI%>">
+<div class="cbi-map" id="cbi-misc">
+<h2><a id="content" name="content">Miscellaneous Modem Features</a></h2>
+<div class="cbi-map-descr">A Collection of Modem Features</div>
+<fieldset class="cbi-section" id="cbi-modi">
+	<legend>Current Modem</legend>
+	<table width="550"  border="0">
+  	<tr>
+    		<td width="40%"><ul id="active"></ul></td>
+    		<td width="17%"><strong id="conntype"></strong></td>
+		<td width="12%">
+			<input type="button" class="cbi-button cbi-button-apply" value="<%:Prev Modem%>" onclick="return modemtoggledn(this)" />
+		</td>
+		<td width="31%">
+			<input type="button" class="cbi-button cbi-button-apply" value="<%:Next Modem%>" onclick="return modemtoggle(this)" />
+		</td>
+  	</tr>
+	</table>
+</fieldset>
+<fieldset class="cbi-section" id="cbi-condis">
+	<legend>Connection/Disconnection</legend>
+	<table width="550"  border="0">
+  	<tr>
+		<td width="25%">
+			<input type="button" id="conn" class="cbi-button cbi-button-apply" value="<%:Connect Current Modem%>" onclick="return modemconnect(this)" />
+		</td>
+		<td width="25%">
+			<input type="button" id="disconn" class="cbi-button cbi-button-apply" value="<%:Disconnect Current Modem%>" onclick="return modemdisconnect(this)" />
+		</td>
+		<td width="25%">
+			<input type="button" id="pwrtoggle" class="cbi-button cbi-button-apply" value="<%:Power Toggle USB 1%>" onclick="return powertoggle(this)" />
+		</td>
+		<td width="25%">
+			<input type="button" id="pwrtoggle1" class="cbi-button cbi-button-apply" value="<%:Power Toggle USB 2%>" onclick="return powertoggle1(this)" />
+		</td>
+  	</tr>
+	</table>
+</fieldset>
+</div>
+</form>
+<%+footer%>

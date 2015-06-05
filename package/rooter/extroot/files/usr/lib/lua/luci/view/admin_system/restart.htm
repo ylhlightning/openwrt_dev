@@ -1,0 +1,71 @@
+<%#
+LuCI - Lua Configuration Interface
+Copyright 2008 Steven Barth <steven@midlink.org>
+Copyright 2008 Jo-Philipp Wich <xm@leipzig.freifunk.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+$Id$
+
+-%>
+<%+header%>
+
+<script type="text/javascript" src="<%=resource%>/xhr.js"></script>
+<script type="text/javascript">//<![CDATA[
+
+	delay = 0;
+
+	XHR.get('<%=luci.dispatcher.build_url("admin", "system", "check_package")%>',
+			null,
+			function(x, rv)
+			{
+				delay=rv.delay;
+			}
+	);
+
+	function install(btn)
+	{
+		btn.disabled = true;
+		setTimeout("location='<%=controller%>/admin'", 60000 + (parseInt(delay)*1000));
+		btn.value    = '<%:Rebooting. Please wait ...%>';
+		XHR.get('<%=luci.dispatcher.build_url("admin", "system", "install_package")%>',
+			null,
+			function(x, rv)
+			{
+			}
+		); 
+		return false;
+	}
+
+
+
+//]]></script>
+
+<form method="post" action="<%=REQUEST_URI%>">
+<div class="cbi-map" id="cbi-feat">
+
+<h2><a id="content" name="content"><%:Add Feature%></a></h2>
+<h3><%:Install and Reboot%></h3>
+
+<table width="550"  border="0">
+  	<tr>
+    		<td width="80%"><div align="left">Click the button to install features.</div></td>
+    		<td width="19%">&nbsp;</td>
+    		<td width="1%">&nbsp;</td>
+  	</tr>
+	<tr>
+    		<td><div align="left">The router will then reboot to complete the installation.</div></td>
+    		<td>&nbsp;</td>
+    		<td>&nbsp;</td>
+  	</tr>
+</table>
+
+<input type="button" id="install1" class="cbi-button cbi-button-install" value="<%:Install and Reboot%>" onclick="return install(this)" />
+
+</div>
+</form>
+<%+footer%>

@@ -1,0 +1,21 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2008-2011 OpenWrt.org
+# Copyright (C) 2008 Jo-Philipp Wich
+# Copyright (C) 2013 Christian Richarz
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+
+# This script exists for the sole purpose of being able to start openvpn manually
+# from the LuCI-OpenVPN module without having the "enable" flag set (which also 
+# clears the specific openvpn configuration for start at system boot time)
+
+
+# Sourcing all functions and variables from /etc/init.d/openvpn
+. /etc/init.d/openvpn
+
+# Overwriting the check for the "enable(d)" flag
+section_enabled() {
+  	enable=1
+	enabled=1
+	[ $enable -gt 0 ] || [ $enabled -gt 0 ]
+} 

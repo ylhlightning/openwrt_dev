@@ -1,0 +1,17 @@
+#!/bin/sh
+
+ROOTER=/usr/lib/rooter
+
+log() {
+	logger -t "sms start" "$@"
+}
+
+CURRMODEM=$1
+COMMPORT="/dev/ttyUSB"$(uci get modem.modem$CURRMODEM.commport)
+
+log "SMS Supported"
+export ATCMD="AT+CMGF=0"
+SX=$(gcom -d $COMMPORT -s $ROOTER/gcom/run-at.gcom 2>/dev/null)
+$ROOTER/log/at-logger "$COMMPORT $SX"
+uci set modem.modem$CURRMODEM.smsnum=0
+uci commit modem

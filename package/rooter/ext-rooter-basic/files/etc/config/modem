@@ -1,0 +1,40 @@
+
+config info 'general'
+	option modemnum '1'
+	option max '6'
+
+config new 'customize'
+
+config pinfo 'ping'
+	option alive '0'
+
+config modem 'modem1'
+	option empty '1'
+
+config minfo1 'modeminfo1'
+
+config modem 'modem2'
+	option empty '1'
+
+config minfo2 'modeminfo2'
+
+config modem 'modem3'
+	option empty '1'
+
+config minfo3 'modeminfo3'
+
+config modem 'modem4'
+	option empty '1'
+
+config minfo4 'modeminfo4'
+
+config modem 'modem5'
+	option empty '1'
+
+config minfo5 'modeminfo5'
+
+config modem 'modem6'
+	option empty '1'
+
+config minfo6 'modeminfo6'
+

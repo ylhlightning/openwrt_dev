@@ -1,0 +1,89 @@
+10
+
+dir
+45579
+svn://svn.openwrt.org/openwrt/trunk/package
+svn://svn.openwrt.org/openwrt
+
+
+
+2015-04-24T15:38:38.042408Z
+45579
+rmilecki
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+3c298f89-4303-0410-b956-a3cf2f4a3e73
+
+devel
+dir
+
+kernel
+dir
+
+utils
+dir
+
+boot
+dir
+
+system
+dir
+
+libs
+dir
+
+network
+dir
+
+base-files
+dir
+
+firmware
+dir
+
+Makefile
+file
+
+
+
+
+2015-04-24T15:43:44.000000Z
+052a3db7c032eb7e3d25193d14e319f6
+2015-04-06T19:39:51.237668Z
+45286
+nbd
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6218
+

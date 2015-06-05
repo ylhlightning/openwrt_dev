@@ -1,0 +1,14 @@
+#!/bin/sh
+
+
+. /etc/functions.sh
+
+#[ -f "/usr/share/nodogsplash/files/splash.html" ] && { \
+#mv -f /usr/share/nodogsplash/files/splash.html /etc/nodogsplash/htdocs/splash.html
+#}
+
+#setup ucitrack
+uci add ucitrack nodogsplash
+uci set ucitrack.@nodogsplash[0].init=ucidog
+
+exit 0
