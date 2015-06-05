@@ -10,7 +10,7 @@ PKG_NAME:=bc
 PKG_VERSION:=1.06.95
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=http://alpha.gnu.org/gnu/bc
+PKG_SOURCE_URL:=http://mirrors.ibiblio.org/gnu/alpha/gnu/bc/
 PKG_MD5SUM:=5126a721b73f97d715bb72c13c889035
 
 include $(INCLUDE_DIR)/host-build.mk

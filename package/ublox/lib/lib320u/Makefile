@@ -1,57 +1,116 @@
-
+########################################################### 
+# 
+# Copyright (C) u-blox Italia 
+# 
+# u-blox Italia 
+# Via Stazione di Prosecco 15 
+# 34010 Sgonico - TRIESTE, ITALY 
+# 
+# All rights reserved. 
 #
-# Copyright (C) 2014 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
+# This source file is the sole property of 
+# u-blox Italia. Reproduction or utilization of 
+# this source in whole or part is forbidden 
+# without the written consent of u-blox Italia. 
+# 
+########################################################### 
+# 
+# Project: M39G_MV 
+# Purpose: Building system 
+# 
+########################################################### 
+#                                                         
+#  $Archive ::                                           
+#                                                         
+# $Workfile :: Makefile (lib320u)                    
+# $Modtime  ::                                            
+# $Revision ::                                           
+# $Author   :: Linhu Ying                                  
+# $Log      :: 01.00 initial UTT - U_M39G_MV-120          
+###########################################################
 
+THIS_COMPONENT_NAME = lib320u
+
+# -----------------------------------------------------------------------------
+# Global makerules
+# -----------------------------------------------------------------------------
 include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/package.mk
 
-PKG_NAME:=lib320u
+# -----------------------------------------------------------------------------
+# UCOM specific makeoptions
+# -----------------------------------------------------------------------------
+
+#init of local variables
+COMPONENT_SOURCEFILES =
+COMPONENT_INCLUDEDIRS =
+COMPONENT_DEFINITIONS =
+
+PKG_NAME:=$(THIS_COMPONENT_NAME)
 PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
 PKG_BUILD_PARALLEL:=1
 
+#source files
+COMPONENT_SOURCEFILES += src/lib320u.c
 
-include $(INCLUDE_DIR)/package.mk
+# Include directories
+COMPONENT_INCLUDEDIRS += inc
 
-define  Package/lib320u
+# Definitions 
+COMPONENT_DEFINITIONS += \
+
+
+# Library dependency
+COMPONENT_LIBRARIES :=-lrt
+
+# Package configuration
+define  Package/$(PKG_NAME)
 	SECTION:=libs
 	CATEGORY:=Libraries
-	TITLE:=lib320u
-    MAINTAINER:=linhu
+	TITLE:=$(PKG_NAME)
+	MAINTAINER:=Linhu Ying
 endef
 
-define Package/lib320u/description
+define Package/$(PKG_NAME)/description
  This package contains sierra wireless Aircard 320u API
 endef
 
-TARGET_CFLAGS += -Iinc
+########################################################
+########           component processing ################
+########           DO NOT MODIFY FROM HERE ########################
+########################################################
 
-PROJECT_CODE = src/lib320u.c
-OBJ = src/lib320u.o
+COMPONENT_OBJ :=  $(patsubst %.c,%.o,$(COMPONENT_SOURCEFILES)) 
 
+#process include directories
+TARGET_CFLAGS += $(sort $(strip $(addprefix -I,$(COMPONENT_INCLUDEDIRS)  ) ) )
+#process compiling switches / definitions
+TARGET_CFLAGS += $(sort $(strip $(addprefix -D,$(COMPONENT_DEFINITIONS)  ) ) )
+#process library dependency.
+TARGET_LDFLAGS += $(PROJECT_LIBRARIES)
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	$(TARGET_CC) $(TARGET_CFLAGS) -c $(PROJECT_CODE) -o $(OBJ) -lrt
+	$(TARGET_CC) $(TARGET_CFLAGS) -c $(COMPONENT_SOURCEFILES) -o $(COMPONENT_OBJ) $(TARGET_LDFLAGS)
 endef
 
 define Build/Compile
-    $(TARGET_AR) cru $(PKG_BUILD_DIR)/$(PKG_NAME).a $(OBJ)
+	$(TARGET_AR) cru $(PKG_BUILD_DIR)/$(PKG_NAME).a $(COMPONENT_OBJ)
 	$(TARGET_RANLIB) $(PKG_BUILD_DIR)/$(PKG_NAME).a
 endef
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/$(PKG_NAME).a $(1)/usr/lib/
+	$(CP) $(PKG_BUILD_DIR)/$(PKG_NAME).a $(1)/usr/lib
 endef
 
-define Package/lib320u/install
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_BUILD_DIR)/$(PKG_NAME).a $(1)/usr/lib
 endef
 
-$(eval $(call BuildPackage,lib320u))
+$(eval $(call BuildPackage,$(PKG_NAME)))
+
 
 

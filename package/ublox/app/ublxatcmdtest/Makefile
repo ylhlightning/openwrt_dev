@@ -19,14 +19,14 @@
 # Purpose: Building system 
 # 
 ########################################################### 
-#                                                         #
-#  $Archive ::                                            # 
-#                                                         #
-# $Workfile :: Makefile (ublxatcmdtest)                   # 
-# $Modtime  ::                                            # 
-# $Revision ::                                            # 
-# $Author   :: Linhu Ying                                 # 
-# $Log      ::                               # 
+#                                                                                          
+#  $Archive ::                                        
+#                                                              
+# $Workfile :: Makefile (ublxatcmdtest)                   
+# $Modtime  ::                                           
+# $Revision ::                                           
+# $Author   :: Linhu Ying                                
+# $Log      ::                               
 ###########################################################
 
 THIS_PROJECT_NAME =ublxatcmdtest
@@ -48,7 +48,7 @@ PROJECT_INCLUDEDIRS =
 PROJECT_DEFINITIONS =
 PROJECT_LIBRARIES =
 
-PKG_NAME:=$(THIS_PROJECT_NAME )
+PKG_NAME:=$(THIS_PROJECT_NAME)
 PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
 
@@ -65,21 +65,21 @@ PROJECT_LIBRARIES :=-l320u
 PROJECT_DEFINITIONS += \
 
 # Package configuration
-define Package/$(THIS_PROJECT_NAME)/Default
+define Package/$(PKG_NAME)/Default
   SECTION:=utils
   CATEGORY:=Utilities
-  TITLE:=$(THIS_PROJECT_NAME)
+  TITLE:=$(PKG_NAME)
   MAINTAINER:=lyin
 endef
 
 # Package description
-define Package/$(THIS_PROJECT_NAME)/description
+define Package/$(PKG_NAME)/description
 Application to test AT command of Sierra Wireless Aircard 320u
 endef
 
 # Package dependency
-define Package/$(THIS_PROJECT_NAME)
-$(call Package/$(THIS_PROJECT_NAME)/Default)
+define Package/$(PKG_NAME)
+$(call Package/$(PKG_NAME)/Default)
   TITLE += (library dependency)
   DEPENDS:=+lib320u +librt
 endef
@@ -101,13 +101,13 @@ define Build/Prepare
 endef
 
 define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/$(THIS_PROJECT_NAME) $(PROJECT_SOURCEFILES) -lrt $(TARGET_LDFLAGS)
+	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) -lrt $(TARGET_LDFLAGS)
 endef
 
-define Package/$(THIS_PROJECT_NAME)/install
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(THIS_PROJECT_NAME) $(1)/usr/sbin/$(THIS_PROJECT_NAME)
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/$(PKG_NAME)
 endef
 
-$(eval $(call BuildPackage,$(THIS_PROJECT_NAME)))
+$(eval $(call BuildPackage,$(PKG_NAME)))
 
