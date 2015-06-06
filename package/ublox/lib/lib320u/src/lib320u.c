@@ -104,7 +104,7 @@ int open_modem(char *modem_port)
 
   modem_interrupt_setup();
 
-  return TRUE;
+  return fd;
 }
 
 

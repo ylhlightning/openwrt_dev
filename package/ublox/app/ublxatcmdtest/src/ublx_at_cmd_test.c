@@ -12,7 +12,7 @@ void main(int argc, char *argv[])
   char cmd_name[CMD_NAME_LEN];
   char *modem_port_name = "/dev/ttyUSB3";
   char recv_msg[CMD_MSG_LEN];
-  int fd;
+  int fd, ret;
   
   if (argc < 2)
   {
@@ -30,10 +30,21 @@ void main(int argc, char *argv[])
     exit(1);
   }
 
-  send_cmd_to_modem(fd, cmd_name);
+  ret = send_cmd_to_modem(fd, cmd_name);
+  if(ret < 0)
+  {
+     printf("Failed to send command to modem\n");
+     exit(1);
+  }
 
-  recv_data_from_modem(fd, recv_msg);
-
+  ret = recv_data_from_modem(fd, recv_msg);
+   
+  if(ret < 0)
+  {
+     printf("Failed to receive message from modem\n");
+     exit(1);
+  }
+  
   close_modem(fd);
 
   exit(0);
