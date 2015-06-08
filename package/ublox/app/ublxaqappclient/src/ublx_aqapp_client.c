@@ -32,6 +32,7 @@
 
 static struct ubus_context *ctx;
 static struct blob_buf b;
+static bool simple_output = false;
 
 static void test_client_subscribe_cb(struct ubus_context *ctx, struct ubus_object *obj)
 {
@@ -131,7 +132,7 @@ static void test_client_fd_cb(struct ubus_request *req, int fd)
 {
   static struct ustream_fd test_fd;
 
-  fprintf(stderr, "Got fd from the server, watching...\n");
+  fprintf(stderr, "Got fd from the server, wwan enable...\n");
 
   test_fd.stream.notify_read = test_client_fd_data_cb;
   ustream_fd_init(&test_fd, fd);
@@ -141,6 +142,56 @@ static void test_client_complete_cb(struct ubus_request *req, int ret)
 {
   fprintf(stderr, "completed request, ret: %d\n", ret);
 }
+
+static void receive_call_result_data(struct ubus_request *req, int type, struct blob_attr *msg)
+{
+  char *str;
+  if (!msg)
+    return;
+
+  str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, simple_output ? -1 : 0);
+  printf("%s\n", str);
+  free(str);
+}
+
+
+/*
+
+static void receive_m(struct ubus_context *ctx, struct ubus_event_handler *ev,
+                          const char *type, struct blob_attr *msg)
+{
+  char *str;
+
+  str = blobmsg_format_json(msg, true);
+  printf("{ \"%s\": %s }\n", type, str);
+  free(str);
+}
+
+
+static int ubus_cli_listen(struct ubus_context *ctx, char *event)
+{
+  static struct ubus_event_handler listener;
+  int ret = 0;
+
+  memset(&listener, 0, sizeof(listener));
+  listener.cb = receive_event;
+
+  do {
+    ret = ubus_register_event_handler(ctx, &listener, event);
+    if (ret)
+      break;
+  } while (1);
+
+  if (ret) {
+    if (!simple_output)
+      fprintf(stderr, "Error while registering for event '%s': %s\n",
+         event, ubus_strerror(ret));
+    return -1;
+  }
+
+  return 0;
+}
+*/
 
 static void client_main(void)
 {
@@ -161,13 +212,12 @@ static void client_main(void)
 
   blob_buf_init(&b, 0);
   blobmsg_add_u32(&b, "id", test_client_object.id);
-  ubus_invoke(ctx, id, "enable", b.head, NULL, 0, 3000);
+  ubus_invoke(ctx, id, "enable", b.head, receive_call_result_data, 0, 3000);
 
   req.fd_cb = test_client_fd_cb;
   req.complete_cb = test_client_complete_cb;
-  ubus_complete_request_async(ctx, &req);
-
-  uloop_timeout_set(&count_timer, 2000);
+//  ubus_complete_request_async(ctx, &req);
+//  uloop_timeout_set(&count_timer, 2000);
 
   uloop_run();
 }
