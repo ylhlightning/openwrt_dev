@@ -143,11 +143,12 @@ int send_cmd_to_modem(int fd, char *cmd_name)
 }
 
 
-int recv_data_from_modem(int fd, char *modem_reply_msg)
+int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
 {
   char buffer[USB_BUFFER];  /* Input buffer */
   char *bufptr;      /* Current char in buffer */
   ssize_t n;       /* Number of bytes read */
+  int ret;
 
   memset(buffer, 0, sizeof(buffer));
 
@@ -165,25 +166,43 @@ int recv_data_from_modem(int fd, char *modem_reply_msg)
           continue;
         default:
           printf("read port error!\n");
+          ret = FALSE;
+          *cmd_result = FALSE;
           break;
      }
     }
 
     if(n == 0)
+      printf("No data received in serial port buffer.\n");
+      ret = FALSE;
+      *cmd_result =FALSE;
       break;
 
     bufptr += n;
 
-    if(strstr(buffer, "OK") != NULL || strstr(buffer, "ERROR") != NULL)
+    if(strstr(buffer, "OK") != NULL)
+    {
+      *bufptr = '\0';
+      printf("%s\n", buffer);
+      strncpy(modem_reply_msg, buffer, USB_BUFFER);
+      *cmd_result =TRUE;
+      ret = TRUE;
       break;
+    }
+    
+    if(strstr(buffer, "ERROR") != NULL)
+    {
+      *bufptr = '\0';
+      printf("%s\n", buffer);
+      strncpy(modem_reply_msg, buffer, USB_BUFFER);
+      *cmd_result =FALSE;
+      ret = TRUE;
+      break;
+    }    
+    
   }
-
-   /* nul terminate the string and see if we got an OK response */
-  *bufptr = '\0';
-  printf("%s\n", buffer);
-
-  strncpy(modem_reply_msg, buffer, USB_BUFFER);
-  return TRUE;
+  /* terminate the string and see if we got an OK response */
+  return ret;
 }
 
 

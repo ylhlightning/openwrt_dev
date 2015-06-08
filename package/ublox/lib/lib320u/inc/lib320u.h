@@ -71,14 +71,15 @@ int send_cmd_to_modem(int fd, char *cmd_name);
  *                           
  */
 
-int recv_data_from_modem(int fd, char *modem_reply_msg);
+int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg);
 
 /*
  * @Function name: close_modem
  *
  * @Description: receive message from modem after send a at command
  *   
- * @param char * modem_name       [in]  modem usb interface name.
+ * @param char * modem_name         [in]  modem usb interface name.
+ * @param char * modem_reply_msg  [in]  modem cmd execution result pointer.
  * @param char * modem_reply_msg  [in]  modem reply message of at command.
  * 
  * @return @type int              [out] boolean value.

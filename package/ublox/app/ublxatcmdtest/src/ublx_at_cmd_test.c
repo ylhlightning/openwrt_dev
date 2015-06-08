@@ -13,6 +13,7 @@ void main(int argc, char *argv[])
   char *modem_port_name = "/dev/ttyUSB3";
   char recv_msg[CMD_MSG_LEN];
   int fd, ret;
+  int *cmd_result;
   
   if (argc < 2)
   {
@@ -37,7 +38,7 @@ void main(int argc, char *argv[])
      exit(1);
   }
 
-  ret = recv_data_from_modem(fd, recv_msg);
+  ret = recv_data_from_modem(fd, cmd_result, recv_msg);
    
   if(ret < 0)
   {
