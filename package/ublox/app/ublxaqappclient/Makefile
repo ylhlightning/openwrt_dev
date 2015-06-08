@@ -22,14 +22,14 @@
 #                                                                                          
 #  $Archive ::                                        
 #                                                              
-# $Workfile :: Makefile (ublxatcmdtest)                   
+# $Workfile :: Makefile (ublxaqappclient)
 # $Modtime  ::                                           
 # $Revision ::                                           
 # $Author   :: Linhu Ying                                
 # $Log      ::                               
 ###########################################################
 
-THIS_PROJECT_NAME =ublxatcmdtest
+THIS_PROJECT_NAME =ublxaqappclient
 
 # -----------------------------------------------------------------------------
 # Global makerules
@@ -53,13 +53,14 @@ PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
 
 # Source files
-PROJECT_SOURCEFILES += src/ublx_at_cmd_test.c
+PROJECT_SOURCEFILES += src/ublx_aqapp_client.c
 
 # Include directories
-PROJECT_INCLUDEDIRS += $(TOPDIR)/package/ublox/lib/lib320u/inc
+PROJECT_INCLUDEDIRS += $(TOPDIR)/package/ublox/lib/lib320u/inc\
+                       inc
 
 # Library dependency
-PROJECT_LIBRARIES :=-l320u
+PROJECT_LIBRARIES :=-l320u -lubus -lubox
 
 # CFLAGS 
 PROJECT_DEFINITIONS += \
@@ -74,14 +75,14 @@ endef
 
 # Package description
 define Package/$(PKG_NAME)/description
-Application to test AT command of Sierra Wireless Aircard 320u
+ublx ubus client application
 endef
 
 # Package dependency
 define Package/$(PKG_NAME)
 $(call Package/$(PKG_NAME)/Default)
   TITLE += (library dependency)
-  DEPENDS:=+lib320u +librt
+  DEPENDS:=+lib320u +librt +libubus +libubox
 endef
 
 ########################################################
