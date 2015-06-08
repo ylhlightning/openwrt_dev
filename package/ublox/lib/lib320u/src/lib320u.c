@@ -118,7 +118,7 @@ int send_cmd_to_modem(int fd, char *cmd_name)
   if(strlen(cmd_name) > CMD_MAX_LEN)
   {
     printf("Error: AT cmd name exceed the maximum length.\n");
-	return FALSE;
+    return FALSE;
   }
 
   sprintf(ctrl_z_bit, "%c", ctrl_z);
@@ -149,6 +149,7 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
   char *bufptr;      /* Current char in buffer */
   ssize_t n;       /* Number of bytes read */
   int ret;
+  int result;
 
   memset(buffer, 0, sizeof(buffer));
 
@@ -167,16 +168,18 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
         default:
           printf("read port error!\n");
           ret = FALSE;
-          *cmd_result = FALSE;
+          result = FALSE;
           break;
      }
     }
 
     if(n == 0)
+    {
       printf("No data received in serial port buffer.\n");
       ret = FALSE;
-      *cmd_result =FALSE;
+      result =FALSE;
       break;
+    }
 
     bufptr += n;
 
@@ -185,7 +188,7 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
       *bufptr = '\0';
       printf("%s\n", buffer);
       strncpy(modem_reply_msg, buffer, USB_BUFFER);
-      *cmd_result =TRUE;
+      result =TRUE;
       ret = TRUE;
       break;
     }
@@ -195,13 +198,14 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
       *bufptr = '\0';
       printf("%s\n", buffer);
       strncpy(modem_reply_msg, buffer, USB_BUFFER);
-      *cmd_result =FALSE;
+      result =FALSE;
       ret = TRUE;
       break;
     }    
     
   }
   /* terminate the string and see if we got an OK response */
+  *cmd_result = result;
   return ret;
 }
 
