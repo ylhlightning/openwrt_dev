@@ -53,7 +53,8 @@ PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
 
 # Source files
-PROJECT_SOURCEFILES += src/ublx_aqapp_server.c
+PROJECT_SOURCEFILES += src/ublx_aqapp_server.c \
+                       src/ublx_aqapp_wwan_api.c
 
 # Include directories
 PROJECT_INCLUDEDIRS += $(TOPDIR)/package/ublox/lib/lib320u/inc \
