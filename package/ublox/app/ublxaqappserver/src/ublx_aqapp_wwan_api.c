@@ -1,26 +1,26 @@
-/*********************************************************** 
- * 
+/***********************************************************
+ *
  * Copyright (C) u-blox Italy S.p.A.
- * 
+ *
  * u-blox Italy S.p.A.
  * Via Stazione di Prosecco 15
  * 34010 Sgonico - TRIESTE, ITALY
- * 
+ *
  * All rights reserved.
- * 
+ *
  * This source file is the sole property of
  * u-blox Italy S.p.A. Reproduction or utilization of
  * this source in whole or part is forbidden
  * without the written consent of u-blox Italy S.p.A.
- * 
+ *
  ******************************************************************************/
-/** 
- * 
+/**
+ *
  * @file ublx_aqapp_wwan_api.c
- * 
+ *
  * @brief ublx aqapp api for wwan object.
- * 
- * @ingroup 
+ *
+ * @ingroup
  *
  * @author   Linhu Ying
  * @date     08/06/2015
@@ -75,7 +75,7 @@ static int wwan_if_enable_do(char *recv_msg)
 
   printf("Command to be sent to serial port: %s\n", cmd_name_cfun_enable);
 
-  fd = open_modem(modem_port_name);
+  fd = open_modem(MODEM_PORT_NAME);
   if(fd < 0)
   {
     printf("Failed to open the modem\n");
@@ -89,13 +89,13 @@ static int wwan_if_enable_do(char *recv_msg)
      return FALSE;
   }
 
-  ret = recv_data_from_modem(fd, &cmd_cfun_result, msg);   
+  ret = recv_data_from_modem(fd, &cmd_cfun_result, msg);
   if(ret < 0)
   {
      printf("Failed to receive message from modem\n");
      return FALSE;
   }
-  
+
   ret = send_cmd_to_modem(fd, cmd_name_cpin_query);
   if(ret < 0)
   {
@@ -103,7 +103,7 @@ static int wwan_if_enable_do(char *recv_msg)
      return FALSE;
   }
 
-  ret = recv_data_from_modem(fd, &cmd_cpin_result, msg);   
+  ret = recv_data_from_modem(fd, &cmd_cpin_result, msg);
   if(ret < 0)
   {
      printf("Failed to receive message from modem\n");
@@ -118,30 +118,29 @@ static int wwan_if_enable_do(char *recv_msg)
       printf("Failed to send command to modem\n");
       return FALSE;
     }
-      
-    ret = recv_data_from_modem(fd, &cmd_cpin_result, msg);   
+
+    ret = recv_data_from_modem(fd, &cmd_cpin_result, msg);
     if(ret < 0)
     {
       printf("Failed to receive message from modem\n");
       return FALSE;
     }
   }
-  
+
   close_modem(fd);
 
   if((cmd_cfun_result == TRUE) && (cmd_cpin_result == TRUE))
   {
     printf("WWAN interface has already enabled.\n");
-    strncpy(recv_msg, msg_ok, strlen(msg_ok));
+    strncpy(recv_msg, MSG_OK, strlen(MSG_OK));
     return TRUE;
   }
   else
   {
     printf("WWAN interface initialization failed.\n");
-    strncpy(recv_msg, msg_err, strlen(msg_err));
+    strncpy(recv_msg, MSG_ERROR, strlen(MSG_ERROR));
     return FALSE;
   }
-  
 }
 
 static void wwan_if_enable_fd_reply(struct uloop_timeout *t)
@@ -197,12 +196,12 @@ static int wwan_if_enable(struct ubus_context *ctx, struct ubus_object *obj,
     msgstr = blobmsg_data(tb[WWAN_IF_ENABLE_MSG]);
 
   hreq = calloc(1, sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1);
-  
+
   if(wwan_if_enable_do(msgstr) == FALSE)
   {
     printf("wwan_if_enable_do failed.\n");
   }
-  
+
   sprintf(hreq->data, format, obj->name, msgstr);
   ubus_defer_request(ctx, req, &hreq->req);
   hreq->timeout.cb = wwan_if_enable_reply;
