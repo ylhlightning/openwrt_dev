@@ -46,6 +46,7 @@ char cmd_name_cpin_insert[CMD_LEN]      = "at+cpin=9754";
 char cmd_name_cgdcont_enable[CMD_LEN]   = "at+cgdcont=1,\"IP\",\"ibox.tim.it\"";
 char cmd_name_context_active[CMD_LEN]   = "at!scact=1,1";
 char cmd_name_context_deactive[CMD_LEN] = "at!scact=0,1";
+char cmd_name_get_public_addr[CMD_LEN]  = "at!scpaddr=1";
 
 
 
@@ -102,6 +103,18 @@ static const struct blobmsg_policy wwan_if_disconnect_policy[] = {
   [WWAN_IF_DISCONNECT_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
 };
 
+/* wwan get public address */
+enum {
+  WWAN_IF_GETADDR_ID,
+  WWAN_IF_GETADDR_MSG,
+  __WWAN_IF_GETADDR_MAX
+};
+
+static const struct blobmsg_policy wwan_if_getaddr_policy[] = {
+  [WWAN_IF_GETADDR_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
+  [WWAN_IF_GETADDR_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
+};
+
 /***************************************************************/
 /*Ubus object wwan method registration*/
 
@@ -110,6 +123,7 @@ static const struct ubus_method wwan_methods[] = {
   UBUS_METHOD("disable",    wwan_if_disable,    wwan_if_disable_policy),
   UBUS_METHOD("connect",    wwan_if_connect,    wwan_if_connect_policy),
   UBUS_METHOD("disconnect", wwan_if_disconnect, wwan_if_disconnect_policy),
+  UBUS_METHOD("getaddr",    wwan_if_getaddr,    wwan_if_getaddr_policy),
 };
 
 static struct ubus_object_type wwan_object_type =
@@ -134,6 +148,37 @@ void ublx_add_object_wwan(void)
   }
 }
 
+static int get_addr_from_string(char *string, char *addr_string)
+{
+  char quatation_mark = '"';
+  int num_quatation_mark = 0;
+  char *addr_str_ptr=addr_string;
+  char *tmp_ptr = string;
+
+  while(*tmp_ptr != '\0')
+  {
+    if(*tmp_ptr == quatation_mark)
+      num_quatation_mark ++;
+
+    if((num_quatation_mark == 1) && (*tmp_ptr != quatation_mark))
+    {
+      *addr_str_ptr = *tmp_ptr;
+      addr_str_ptr ++;
+    }
+    tmp_ptr ++;
+  }
+
+  if(num_quatation_mark != 2)
+  {
+     printf("Error format string\n");
+     return -1;
+  }
+
+  addr_str_ptr = '\0';
+  return 0;
+}
+
+
 
 /***************************************************************/
 /*Ubus object method handler function*/
@@ -144,6 +189,7 @@ static int wwan_if_enable_do(char *recv_msg)
 {
   int cmd_cfun_result, cmd_cpin_result;
   char msg[CMD_MSG_MAX_LEN];
+  char client_msg[CMD_MSG_MAX_LEN] = "WWAN interface enable: ";
   int ret;
 
   printf("Command to be sent to serial port: %s\n", cmd_name_cfun_enable);
@@ -201,13 +247,15 @@ static int wwan_if_enable_do(char *recv_msg)
   if((cmd_cfun_result == TRUE) && (cmd_cpin_result == TRUE))
   {
     printf("WWAN interface has already enabled.\n");
-    strncpy(recv_msg, MSG_OK, strlen(MSG_OK));
+    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
   else
   {
     printf("WWAN interface initialization failed.\n");
-    strncpy(recv_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;
   }
 }
@@ -290,6 +338,7 @@ static int wwan_if_disable_do(char *recv_msg)
   int cmd_cfun_result;
   char msg[CMD_MSG_MAX_LEN];
   int ret;
+  char client_msg[CMD_MSG_MAX_LEN] = "WWAN interface disable: ";
 
   printf("Command to be sent to serial port: %s\n", cmd_name_cfun_disable);
 
@@ -310,13 +359,15 @@ static int wwan_if_disable_do(char *recv_msg)
   if(cmd_cfun_result == TRUE)
   {
     printf("WWAN interface has already disabled.\n");
-    strncpy(recv_msg, MSG_OK, strlen(MSG_OK));
+    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
   else
   {
     printf("WWAN interface disable failed.\n");
-    strncpy(recv_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;
   }
 }
@@ -401,6 +452,7 @@ static int wwan_if_connect_do(char *recv_msg)
   int cmd_cgdcont_result, cmd_active_result;
   char msg[CMD_MSG_MAX_LEN];
   int ret;
+  char client_msg[CMD_MSG_MAX_LEN] = "WWAN interface connect: ";
 
   printf("Command to be sent to serial port: %s\n", cmd_name_cgdcont_enable);
 
@@ -437,13 +489,15 @@ static int wwan_if_connect_do(char *recv_msg)
   if((cmd_cgdcont_result == TRUE) && (cmd_active_result == TRUE))
   {
     printf("WWAN interface has actived a connection context.\n");
-    strncpy(recv_msg, MSG_OK, strlen(MSG_OK));
+    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
   else
   {
     printf("WWAN interface has actived a connection context.\n");
-    strncpy(recv_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;
   }
 }
@@ -527,6 +581,7 @@ static int wwan_if_disconnect_do(char *recv_msg)
   int cmd_disconnect_result;
   char msg[CMD_MSG_MAX_LEN];
   int ret;
+  char client_msg[CMD_MSG_MAX_LEN] = "WWAN interface disconnect: ";
 
   printf("Command to be sent to serial port: %s\n", cmd_name_context_deactive);
 
@@ -547,13 +602,15 @@ static int wwan_if_disconnect_do(char *recv_msg)
   if(cmd_disconnect_result == TRUE)
   {
     printf("WWAN interface has already disconnected.\n");
-    strncpy(recv_msg, MSG_OK, strlen(MSG_OK));
+    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
   else
   {
     printf("WWAN interface disconnect failed.\n");
-    strncpy(recv_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;
   }
 }
@@ -620,6 +677,119 @@ static int wwan_if_disconnect(struct ubus_context *ctx, struct ubus_object *obj,
   sprintf(hreq->data, format, obj->name, msgstr);
   ubus_defer_request(ctx, req, &hreq->req);
   hreq->timeout.cb = wwan_if_disconnect_reply;
+  uloop_timeout_set(&hreq->timeout, 1000);
+
+  return 0;
+}
+
+/***************************************************************/
+/*Ubus object method handler function*/
+
+/* wwan get pubblic address */
+
+static int wwan_if_getaddr_do(char *recv_msg)
+{
+  int cmd_getaddr_result;
+  char msg[CMD_MSG_MAX_LEN];
+  char ip_msg[20];
+  char client_msg[CMD_MSG_MAX_LEN] = "WWAN public ip address:";
+  int ret;
+
+  printf("Command to be sent to serial port: %s\n", cmd_name_get_public_addr);
+
+  ret = send_cmd_to_modem(modem_fd, cmd_name_get_public_addr);
+  if(ret < 0)
+  {
+     printf("Failed to send command to modem\n");
+     return FALSE;
+  }
+
+  ret = recv_data_from_modem(modem_fd, &cmd_getaddr_result, msg);
+  if(ret < 0)
+  {
+     printf("Failed to receive message from modem\n");
+     return FALSE;
+  }
+
+  if(cmd_getaddr_result == TRUE)
+  {
+    printf("WWAN interface get public address.\n");
+    get_addr_from_string(msg, ip_msg);
+    strncat(client_msg, ip_msg, strlen(ip_msg));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
+    return TRUE;
+  }
+  else
+  {
+    printf("WWAN interface get public failed.\n");
+    strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
+    return FALSE;
+  }
+}
+
+static void wwan_if_getaddr_fd_reply(struct uloop_timeout *t)
+{
+  struct wwan_if_request *req = container_of(t, struct wwan_if_request, timeout);
+  char *data;
+
+  data = alloca(strlen(req->data) + 32);
+  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
+  if (write(req->fd, data, strlen(data)) < 0) {
+    close(req->fd);
+    free(req);
+    return;
+  }
+
+  uloop_timeout_set(&req->timeout, 1000);
+}
+
+static void wwan_if_getaddr_reply(struct uloop_timeout *t)
+{
+  struct wwan_if_request *req = container_of(t, struct wwan_if_request, timeout);
+  int fds[2];
+
+  blob_buf_init(&b, 0);
+  blobmsg_add_string(&b, "message", req->data);
+  ubus_send_reply(ctx, &req->req, b.head);
+
+  if (pipe(fds) == -1) {
+    fprintf(stderr, "Failed to create pipe\n");
+    return;
+  }
+  ubus_request_set_fd(ctx, &req->req, fds[0]);
+  ubus_complete_deferred_request(ctx, &req->req, 0);
+  req->fd = fds[1];
+
+  req->timeout.cb = wwan_if_getaddr_fd_reply;
+  wwan_if_getaddr_fd_reply(t);
+}
+
+static int wwan_if_getaddr(struct ubus_context *ctx, struct ubus_object *obj,
+          struct ubus_request_data *req, const char *method,
+          struct blob_attr *msg)
+{
+  struct wwan_if_request *hreq;
+  struct blob_attr *tb[__WWAN_IF_GETADDR_MAX];
+  const char *format = "%s received a message: %s";
+  char data[1024];
+  char *msgstr = data;
+
+  blobmsg_parse(wwan_if_getaddr_policy, ARRAY_SIZE(wwan_if_getaddr_policy), tb, blob_data(msg), blob_len(msg));
+
+  if (tb[WWAN_IF_GETADDR_MSG])
+    msgstr = blobmsg_data(tb[WWAN_IF_GETADDR_MSG]);
+
+  hreq = calloc(1, sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1);
+
+  if(wwan_if_getaddr_do(msgstr) == FALSE)
+  {
+    printf("wwan_if_getaddr failed.\n");
+  }
+
+  sprintf(hreq->data, format, obj->name, msgstr);
+  ubus_defer_request(ctx, req, &hreq->req);
+  hreq->timeout.cb = wwan_if_getaddr_reply;
   uloop_timeout_set(&hreq->timeout, 1000);
 
   return 0;
