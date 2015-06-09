@@ -49,7 +49,7 @@ static void server_main(void)
   if(modem_fd < 0)
   {
     printf("Failed to open the modem\n");
-    return FALSE;
+    exit(0);
   }
 
   ublx_add_object_wwan();

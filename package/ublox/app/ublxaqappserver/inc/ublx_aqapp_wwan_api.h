@@ -57,6 +57,21 @@ static int wwan_if_disable(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg);
 
+static int wwan_if_connect_do(char *recv_msg);
+
+static void wwan_if_connect_reply(struct uloop_timeout *t);
+
+static int wwan_if_connect(struct ubus_context *ctx, struct ubus_object *obj,
+          struct ubus_request_data *req, const char *method,
+          struct blob_attr *msg);
+
+static int wwan_if_disconnect_do(char *recv_msg);
+
+static void wwan_if_disconnect_reply(struct uloop_timeout *t);
+
+static int wwan_if_disconnect(struct ubus_context *ctx, struct ubus_object *obj,
+          struct ubus_request_data *req, const char *method,
+          struct blob_attr *msg);
 
 #endif
 
