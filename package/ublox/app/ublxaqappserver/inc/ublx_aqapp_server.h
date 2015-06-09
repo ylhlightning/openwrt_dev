@@ -39,7 +39,5 @@
 #include "ublx_aqapp_wwan_api.h"
 #include "ublx_aqapp_common.h"
 
-#define CMD_MSG_LEN 1024
-
 #endif
 

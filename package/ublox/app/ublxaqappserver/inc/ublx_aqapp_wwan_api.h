@@ -37,6 +37,8 @@
 
 extern struct ubus_context *ctx;
 
+void ublx_add_object_wwan(void);
+
 static int wwan_if_enable_do(char *recv_msg);
 
 static void wwan_if_enable_fd_reply(struct uloop_timeout *t);
@@ -47,7 +49,14 @@ static int wwan_if_enable(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg);
 
-void ublx_add_object_wwan(void);
+static int wwan_if_disable_do(char *recv_msg);
+
+static void wwan_if_disable_reply(struct uloop_timeout *t);
+
+static int wwan_if_disable(struct ubus_context *ctx, struct ubus_object *obj,
+          struct ubus_request_data *req, const char *method,
+          struct blob_attr *msg);
+
 
 #endif
 

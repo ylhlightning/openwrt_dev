@@ -110,7 +110,7 @@ int open_modem(char *modem_port)
 
 int send_cmd_to_modem(int fd, char *cmd_name)
 {
-  ssize_t write_bytes;
+  ssize_t write_bytes = 0;
   size_t cmd_len = strlen(cmd_name);
   char ctrl_z = '\x1A';
   char ctrl_z_bit[2];
@@ -133,7 +133,7 @@ int send_cmd_to_modem(int fd, char *cmd_name)
   }
   else
   {
-    printf("Successful to write %d bytes to modem serial port\n", write_bytes);
+    printf("Successful to write commands to modem serial port\n");
   }
 
   /*flush all read write buffer */

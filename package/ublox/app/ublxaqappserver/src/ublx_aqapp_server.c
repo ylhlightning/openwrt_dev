@@ -45,6 +45,13 @@ static void server_main(void)
 {
   int ret;
 
+  modem_fd = open_modem(MODEM_PORT_NAME);
+  if(modem_fd < 0)
+  {
+    printf("Failed to open the modem\n");
+    return FALSE;
+  }
+
   ublx_add_object_wwan();
 
   ret = ubus_register_subscriber(ctx, &test_event);
@@ -89,6 +96,8 @@ int main(int argc, char **argv)
 
   ubus_free(ctx);
   uloop_done();
+
+  close_modem(modem_fd);
 
   return 0;
 }

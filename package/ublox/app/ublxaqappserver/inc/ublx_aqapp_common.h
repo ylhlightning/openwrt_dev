@@ -34,5 +34,11 @@
 #define MSG_OK "OK"
 #define MSG_ERROR "ERROR"
 
+#define CMD_MSG_LEN 1024
+#define CMD_LEN     128
+
+
+int modem_fd;
+
 #endif
 
