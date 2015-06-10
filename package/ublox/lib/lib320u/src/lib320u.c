@@ -7,6 +7,9 @@
 
 #include "lib320u.h"
 
+static timer_t gTimerid;
+static struct itimerspec timer;
+
 static void timer_handler(int signum)
 {
   switch(signum) {
@@ -36,12 +39,9 @@ static void interrupt_handler(int signum)
   close(1);
 }
 
-static void modem_answer_timer_setup(void)
+static void modem_answer_timer_create(void)
 {
-  timer_t gTimerid;
   struct sigaction sa;
-  struct itimerspec timer;
-  struct itimerspec new_timer;
   memset (&sa, 0, sizeof (sa));
   sa.sa_handler = &timer_handler;
   sigaction (SIGVTALRM, &sa, NULL);
@@ -49,14 +49,30 @@ static void modem_answer_timer_setup(void)
   sa.sa_handler = &timer_handler;
   sigaction(SIGALRM, &sa, NULL);
 
+  timer_create(CLOCK_REALTIME, NULL, &gTimerid);
+}
+
+static void modem_answer_timer_setup(void)
+{
   timer.it_value.tv_sec = WAIT_MODEM_ANSWER_MAX_TIMEOUT;
   timer.it_value.tv_nsec = 0;
   timer.it_interval.tv_sec = WAIT_MODEM_ANSWER_MAX_TIMEOUT;
   timer.it_interval.tv_nsec = 0;
-
-  timer_create(CLOCK_REALTIME, NULL, &gTimerid);
   timer_settime(gTimerid, 0, &timer, NULL);
+}
 
+static void modem_answer_timer_stop(void)
+{
+  timer.it_value.tv_sec = 0;
+  timer.it_value.tv_nsec = 0;
+  timer.it_interval.tv_sec = 0;
+  timer.it_interval.tv_nsec = 0;
+  timer_settime(gTimerid, 0, &timer, NULL);
+}
+
+static void modem_answer_timer_delete(void)
+{
+  timer_delete(gTimerid);
 }
 
 static void modem_interrupt_setup(void)
@@ -100,7 +116,7 @@ int open_modem(char *modem_port)
   /* set the options */
   tcsetattr(fd, TCSANOW, &options);
 
-  modem_answer_timer_setup();
+  modem_answer_timer_create();
 
   modem_interrupt_setup();
 
@@ -138,6 +154,8 @@ int send_cmd_to_modem(int fd, char *cmd_name)
 
   /*flush all read write buffer */
   tcflush(fd, TCIOFLUSH);
+
+  modem_answer_timer_setup();
 
   return TRUE;
 }
@@ -206,6 +224,8 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
   }
   /* terminate the string and see if we got an OK response */
   *cmd_result = result;
+
+  modem_answer_timer_stop();
   return ret;
 }
 
@@ -217,6 +237,7 @@ int close_modem(int fd)
      printf("Unable to open modem, error: %s\n", strerror(errno));
      return FALSE;
    }
+   modem_answer_timer_delete();
    return TRUE;
 }
 
