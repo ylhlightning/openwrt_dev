@@ -37,7 +37,7 @@
 #include "libubus.h"
 #include "lib320u.h"
 #include "ublx_aqapp_wwan_api.h"
-#include "ublx_aqapp_common.h"
+
 
 #endif
 
