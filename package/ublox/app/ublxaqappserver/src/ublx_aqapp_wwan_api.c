@@ -208,43 +208,23 @@ static int wwan_if_enable_do(char *recv_msg)
      return FALSE;
   }
 
-  printf("Command to be sent to serial port: %s\n", cmd_name_cpin_query);
+  printf("Command to be sent to serial port: %s\n", cmd_name_cpin_insert);
 
-  ret = send_cmd_to_modem(modem_fd, cmd_name_cpin_query);
+  ret = send_cmd_to_modem(modem_fd, cmd_name_cpin_insert);
   if(ret < 0)
   {
-     printf("Failed to send command to modem\n");
-     return FALSE;
+    printf("Failed to send command to modem\n");
+    return FALSE;
   }
 
   ret = recv_data_from_modem(modem_fd, &cmd_cpin_result, msg);
   if(ret < 0)
   {
-     printf("Failed to receive message from modem\n");
-     return FALSE;
+    printf("Failed to receive message from modem\n");
+    return FALSE;
   }
 
-  if(cmd_cpin_result == FALSE)
-  {
-
-    printf("Command to be sent to serial port: %s\n", cmd_name_cpin_insert);
-    
-    ret = send_cmd_to_modem(modem_fd, cmd_name_cpin_insert);
-    if(ret < 0)
-    {
-      printf("Failed to send command to modem\n");
-      return FALSE;
-    }
-
-    ret = recv_data_from_modem(modem_fd, &cmd_cpin_result, msg);
-    if(ret < 0)
-    {
-      printf("Failed to receive message from modem\n");
-      return FALSE;
-    }
-  }
-
-  if((cmd_cfun_result == TRUE) && (cmd_cpin_result == TRUE))
+  if((cmd_cfun_result == TRUE))
   {
     printf("WWAN interface has already enabled.\n");
     strncat(client_msg, MSG_OK, strlen(MSG_OK));
@@ -455,6 +435,20 @@ static int wwan_if_disable(struct ubus_context *ctx, struct ubus_object *obj,
 
 /* wwan connect */
 
+static void wwan_network_configuration()
+{
+  system("/sbin/ifconfig wwan0 up");
+
+  sleep(0.1);
+
+  system("/sbin/udhcpc -i wwan0");
+
+  sleep(0.1);
+
+  system("echo \"nameserver 8.8.8.8\" > /etc/resolv.conf");
+
+}
+
 static int wwan_if_connect_do(char *recv_msg)
 {
   int cmd_cgdcont_result, cmd_active_result;
@@ -497,6 +491,7 @@ static int wwan_if_connect_do(char *recv_msg)
   if((cmd_cgdcont_result == TRUE) && (cmd_active_result == TRUE))
   {
     printf("WWAN interface has actived a connection context.\n");
+    wwan_network_configuration();
     strncat(client_msg, MSG_OK, strlen(MSG_OK));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;

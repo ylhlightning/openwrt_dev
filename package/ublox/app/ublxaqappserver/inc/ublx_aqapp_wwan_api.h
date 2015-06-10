@@ -30,6 +30,7 @@
 #ifndef __UBLX_AQAPP_WWAN_API_H__
 #define __UBLX_AQAPP_WWAN_API_H__
 
+#include <stdlib.h>
 #include <libubox/blobmsg_json.h>
 #include "lib320u.h"
 #include "libubus.h"
