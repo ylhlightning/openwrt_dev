@@ -6,6 +6,9 @@
 * Upon such a notification, the server creates a client representation.
 *******************************************************************************/
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "UblxServer.h"
 #include "UblxClient.h"
 #include "EventHandler.h"
@@ -14,9 +17,7 @@
 
 #include "Error.h"
 #include "TcpServer.h"
-
-#include <stdlib.h>
-#include <stdio.h>
+#include <libubox/ustream.h>
 
 #define MAX_NO_OF_CLIENTS 10
 
@@ -63,16 +64,16 @@ static Handle getServerSocket(void* instance)
 static void handleConnectRequest(void* instance)
 {
    DiagnosticsServerPtr server = instance;
-  
+
    const int freeSlot = findFreeClientSlot(server);
-   
+
    if(0 <= freeSlot) {
       /* Define a callback for events requiring the actions of the server (for example 
          a closed connection). */
       ServerEventNotifier eventNotifier = {0};
       eventNotifier.server = server;
       eventNotifier.onClientClosed = onClientClosed;
-      
+
       server->clients[freeSlot] = createClient(server->listeningSocket, &eventNotifier);
         
       (void) printf("Server: Incoming connect request accepted\n");
@@ -95,15 +96,15 @@ static void onClientClosed(void* server,
 {
    DiagnosticsServerPtr serverInstance = server;
    DiagnosticsClientPtr clientInstance = closedClient;
-   
+
    const int clientSlot = findMatchingClientSlot(serverInstance, clientInstance);
-   
+
    if(0 > clientSlot) {
       error("Phantom client detected");
    }
-   
+
    destroyClient(clientInstance);
-   
+
    serverInstance->clients[clientSlot] = NULL;
 }
 
@@ -121,7 +122,7 @@ DiagnosticsServerPtr createServer(unsigned int tcpPort)
 
    if(NULL != newServer) {
       int i = 0;
-      
+
       for(i = 0; i < MAX_NO_OF_CLIENTS; ++i) {
          newServer->clients[i] = NULL;
       }
@@ -135,7 +136,7 @@ DiagnosticsServerPtr createServer(unsigned int tcpPort)
 
       Register(&newServer->eventHandler);
    }
-   
+
    return newServer;
 }
 
@@ -147,7 +148,7 @@ DiagnosticsServerPtr createServer(unsigned int tcpPort)
 void destroyServer(DiagnosticsServerPtr server)
 {
    deleteAllClients(server);
-   
+
    /* Before deleting the server we have to unregister at the Reactor. */
    Unregister(&server->eventHandler);
 
@@ -162,9 +163,9 @@ void destroyServer(DiagnosticsServerPtr server)
 static void deleteAllClients(DiagnosticsServerPtr server)
 {
    int i = 0;
-      
+
    for(i = 0; i < MAX_NO_OF_CLIENTS; ++i) {
-      
+
       if(NULL != server->clients[i]) {
          destroyClient(server->clients[i]);
       }
@@ -181,15 +182,15 @@ static int matchControlledClientByPointer(const DiagnosticsServerPtr server,
    int clientSlot = -1;
    int slotFound = 0;
    int i = 0;
-      
+
    for(i = 0; (i < MAX_NO_OF_CLIENTS) && (0 == slotFound); ++i) {
-      
+
       if(clientToMatch == server->clients[i]) {
          clientSlot = i;
          slotFound = 1;
       }
    }
-   
+
    return clientSlot;
 }
 

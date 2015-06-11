@@ -8,11 +8,6 @@
 * This client representation simply reads the message and prints it to stdout.
 **********************************************************************************/
 
-#include "UblxClient.h"
-#include "UblxServer.h"
-#include "EventHandler.h"
-#include "Reactor.h"
-#include "Error.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -22,11 +17,20 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "UblxClient.h"
+#include "UblxServer.h"
+#include "EventHandler.h"
+#include "Reactor.h"
+#include "Error.h"
+
+#include "libubus.h"
+#include "lib320u.h"
+
+
 struct DiagnosticsClient
 {
    Handle clientSocket;
    EventHandler eventHandler;
-   
    ServerEventNotifier eventNotifier;
 }; 
 
@@ -56,7 +60,7 @@ static struct ubus_context *ctx;
 static struct blob_buf b;
 static bool simple_output = false;
 
-static ubus_proc_handler_t ubus_proc_handler_table[] = 
+static ubus_proc_handler_t ubus_proc_handler_table[] =
 {
   {UBLX_OPEN_CONNECTION, wwan_connection_open}
 };
@@ -79,7 +83,7 @@ static int ubus_client_process_find(int client_func)
   }
 
   printf("No ubus proc handler found.\n");
-  return 0;
+  return FALSE;
 }
 
 static void test_client_subscribe_cb(struct ubus_context *ctx, struct ubus_object *obj)
@@ -99,7 +103,7 @@ static void receive_call_result_data(struct ubus_request *req, int type, struct 
     return;
   }
   str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, simple_output ? -1 : 0);
-  
+
   printf("%s\n", str);
   free(str);
 }

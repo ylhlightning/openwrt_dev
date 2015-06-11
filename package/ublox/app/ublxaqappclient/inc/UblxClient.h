@@ -4,13 +4,9 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <libubox/ustream.h>
 
 #include "Handle.h"
 #include "ServerEventNotifier.h"
-#include "libubus.h"
-#include "lib320u.h"
-
 
 #define UBLX_OPEN_CONNECTION 1
 #define UBLX_CLIENT_MSG_LEN 1024
