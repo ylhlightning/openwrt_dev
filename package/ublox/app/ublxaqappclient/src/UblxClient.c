@@ -108,7 +108,7 @@ static void receive_call_result_data(struct ubus_request *req, int type, struct 
   free(str);
 }
 
-static int client_ubus_process(char *ubus_act)
+static int client_ubus_process(char *ubus_object, char *ubus_method)
 {
   static struct ubus_request req;
   uint32_t id;
@@ -127,7 +127,7 @@ static int client_ubus_process(char *ubus_act)
     return FALSE;
   }
 
-  if (ubus_lookup_id(ctx, ubus_act, &id)) {
+  if (ubus_lookup_id(ctx, ubus_object, &id)) {
     printf("Failed to look up test object\n");
     return FALSE;
   }
@@ -135,7 +135,7 @@ static int client_ubus_process(char *ubus_act)
   blob_buf_init(&b, 0);
   blobmsg_add_u32(&b, "id", test_client_object.id);
 
-  if(ubus_invoke(ctx, id, "enable", b.head, receive_call_result_data, 0, 3000) == 0)
+  if(ubus_invoke(ctx, id, ubus_method, b.head, receive_call_result_data, 0, 3000) == 0)
   {
     ret = TRUE;
   }
@@ -151,11 +151,15 @@ static int client_ubus_process(char *ubus_act)
 static int wwan_connection_open(void)
 {
   int ret;
-  ret = client_ubus_process("enable");
+  char *wwan_object = "wwan";
+  char *wwan_method_enable = "enable";
+  char *wwan_method_connect = "connect";
+
+  ret = client_ubus_process(wwan_object, wwan_method_enable);
   if(ret == FALSE)
     return FALSE;
   
-  ret = client_ubus_process("connect");
+  ret = client_ubus_process(wwan_object, wwan_method_connect);
   if(ret == FALSE)
     return FALSE;
 
@@ -180,6 +184,8 @@ static void handleReadEvent(void* instance)
 
    int client_message_len = sizeof(clientMessage);
 
+   int client_handler_idx;
+
    const ssize_t receiveResult = recv(client->clientSocket, &clientMessage, client_message_len, 0);
    
    if(0 < receiveResult) {
@@ -189,19 +195,31 @@ static void handleReadEvent(void* instance)
       
       printf("Client: received message from client: %d, request:%d\n", client->clientSocket, clientMessage.ublx_client_func);
 
-      if(ubus_client_process_find(clientMessage.ublx_client_func) == FALSE)
+      client_handler_idx = ubus_client_process_find(clientMessage.ublx_client_func) == FALSE;
+
+      if(client_handler_idx == FALSE)
       {
         printf("Server: can not find client %d handler function\n", client->clientSocket);
         client->eventNotifier.onClientClosed(client->eventNotifier.server, client);
       }
       else
       {
+        if(ubus_proc_handler_table[client_handler_idx].proc_handler() == FALSE)
+        {
+           printf("Server: Client handler execution failed.\n");
+           strncpy(clientMessage.ublx_client_reply_msg, MSG_ERROR, strlen(MSG_ERROR));
+        }
+        else
+        {
+           printf("Server: Client handler execution success.\n");
+           strncpy(clientMessage.ublx_client_reply_msg, MSG_OK, strlen(MSG_OK));
+        }
+
         ssize_t sendResult = send(client->clientSocket, &clientMessage, client_message_len, 0);
 
         if(0 < sendResult)
         {
-          strncpy(clientMessage.ublx_client_reply_msg, MSG_OK, strlen(MSG_OK));
-          printf("Server: Reply client %d with reply message [%s]\n", client->clientSocket, clientMessage.ublx_client_reply_msg);
+          printf("Server: Reply client %d with message success\n", client->clientSocket);
         }
         else
         {
