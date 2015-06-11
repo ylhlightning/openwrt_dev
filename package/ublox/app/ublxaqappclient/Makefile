@@ -54,12 +54,13 @@ PKG_USE_MIPS16:=0
 
 # Source files
 PROJECT_SOURCEFILES += \
-                       src/UblxClient.c \
-                       src/UblxServer.c \
-                       src/Error.c \
-                       src/Main.c \
-                       src/PollReactor.c \
-                       src/TcpServer.c
+                       src/main.c \
+                       src/ublx_client.c \
+                       src/ublx_client_handler.c \
+                       src/ublx_server.c \
+                       src/error.c \
+                       src/poll_reactor.c \
+                       src/tcp_server.c
 
 # Include directories
 PROJECT_INCLUDEDIRS += $(TOPDIR)/package/ublox/lib/lib320u/inc\

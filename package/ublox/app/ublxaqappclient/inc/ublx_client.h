@@ -1,12 +1,42 @@
-#ifndef DIAGNOSTICS_CLIENT_H
-#define DIAGNOSTICS_CLIENT_H
+/*********************************************************** 
+ * 
+ * Copyright (C) u-blox Italy S.p.A.
+ * 
+ * u-blox Italy S.p.A.
+ * Via Stazione di Prosecco 15
+ * 34010 Sgonico - TRIESTE, ITALY
+ * 
+ * All rights reserved.
+ * 
+ * This source file is the sole property of
+ * u-blox Italy S.p.A. Reproduction or utilization of
+ * this source in whole or part is forbidden
+ * without the written consent of u-blox Italy S.p.A.
+ * 
+ ******************************************************************************/
+/** 
+ * 
+ * @file ublx_client.h
+ * 
+ * @brief ublx aqapp client application server client functions.
+ * 
+ * @ingroup
+ *
+ * @author   Linhu Ying
+ * @date     08/06/2015
+ *
+ ***********************************************************/
+
+
+#ifndef __UBLX_CLIENT_H__
+#define __UBLX_CLIENT_H__
 
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "Handle.h"
-#include "ServerEventNotifier.h"
+#include "handle.h"
+#include "server_event_notifier.h"
 
 #define UBLX_OPEN_CONNECTION 1
 #define UBLX_CLIENT_MSG_LEN 1024

@@ -1,23 +1,44 @@
-/******************************************************************************
-* A simulation of a diagnostics server.
-*
-* A client that wants to log a diagnostic connects to this server using TCP/IP.
-* The server gets notified about a connecting client through the Reactor.
-* Upon such a notification, the server creates a client representation.
-*******************************************************************************/
+/*********************************************************** 
+ * 
+ * Copyright (C) u-blox Italy S.p.A.
+ * 
+ * u-blox Italy S.p.A.
+ * Via Stazione di Prosecco 15
+ * 34010 Sgonico - TRIESTE, ITALY
+ * 
+ * All rights reserved.
+ * 
+ * This source file is the sole property of
+ * u-blox Italy S.p.A. Reproduction or utilization of
+ * this source in whole or part is forbidden
+ * without the written consent of u-blox Italy S.p.A.
+ * 
+ ******************************************************************************/
+/** 
+ * 
+ * @file ublx_server.c
+ * 
+ * @brief ublx aqapp client server application which proxy the host application request to ubus server for ubus communication.
+ * 
+ * @ingroup
+ *
+ * @author   Linhu Ying
+ * @date     08/06/2015
+ *
+ ***********************************************************/
+
 
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "UblxServer.h"
-#include "UblxClient.h"
-#include "EventHandler.h"
-#include "ServerEventNotifier.h"
-#include "Reactor.h"
+#include "ublx_server.h"
+#include "ublx_client.h"
+#include "event_handler.h"
+#include "server_event_notifier.h"
+#include "reactor.h"
 
-#include "Error.h"
-#include "TcpServer.h"
-#include <libubox/ustream.h>
+#include "error.h"
+#include "tcp_server.h"
 
 #define MAX_NO_OF_CLIENTS 10
 

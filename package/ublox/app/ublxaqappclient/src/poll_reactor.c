@@ -1,7 +1,37 @@
-#include "Reactor.h"
-#include "ReactorEventLoop.h"
+/*********************************************************** 
+ * 
+ * Copyright (C) u-blox Italy S.p.A.
+ * 
+ * u-blox Italy S.p.A.
+ * Via Stazione di Prosecco 15
+ * 34010 Sgonico - TRIESTE, ITALY
+ * 
+ * All rights reserved.
+ * 
+ * This source file is the sole property of
+ * u-blox Italy S.p.A. Reproduction or utilization of
+ * this source in whole or part is forbidden
+ * without the written consent of u-blox Italy S.p.A.
+ * 
+ ******************************************************************************/
+/** 
+ * 
+ * @file poll_reactor.c
+ * 
+ * @brief ublx aqapp client application server poll reactor funtion.
+ * 
+ * @ingroup
+ *
+ * @author   Linhu Ying
+ * @date     08/06/2015
+ *
+ ***********************************************************/
 
-#include "Error.h"
+
+#include "reactor.h"
+#include "reactor_event_loop.h"
+
+#include "error.h"
 
 #include <linux/poll.h>
 

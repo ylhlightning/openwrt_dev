@@ -1,12 +1,31 @@
-/*********************************************************************************
-*
-* The server side representation of a client sending diagnostic messages to the log.
-*
-* An instance of this client ADT is created as the server detects a connect request.
-* Upon creation, the instance registers itself at the Reactor. The Reactor will notify 
-* this client representation as an incoming diagnostics message is pending. 
-* This client representation simply reads the message and prints it to stdout.
-**********************************************************************************/
+/*********************************************************** 
+ * 
+ * Copyright (C) u-blox Italy S.p.A.
+ * 
+ * u-blox Italy S.p.A.
+ * Via Stazione di Prosecco 15
+ * 34010 Sgonico - TRIESTE, ITALY
+ * 
+ * All rights reserved.
+ * 
+ * This source file is the sole property of
+ * u-blox Italy S.p.A. Reproduction or utilization of
+ * this source in whole or part is forbidden
+ * without the written consent of u-blox Italy S.p.A.
+ * 
+ ******************************************************************************/
+/** 
+ * 
+ * @file ublx_client.c
+ * 
+ * @brief ublx aqapp client application server which proxy the client application request to ubus server.
+ * 
+ * @ingroup
+ *
+ * @author   Linhu Ying
+ * @date     08/06/2015
+ *
+ ***********************************************************/
 
 
 #include <sys/socket.h>
@@ -17,15 +36,15 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "UblxClient.h"
-#include "UblxServer.h"
-#include "EventHandler.h"
-#include "Reactor.h"
-#include "Error.h"
+#include "ublx_client.h"
+#include "ublx_server.h"
+#include "event_handler.h"
+#include "reactor.h"
+#include "error.h"
+#include "ublx_client_handler.h"
 
 #include "libubus.h"
 #include "lib320u.h"
-
 
 struct DiagnosticsClient
 {
@@ -40,12 +59,19 @@ typedef struct ubus_proc_handler
    int (*proc_handler)(void);
 } ubus_proc_handler_t;
 
-
 #define MAX_MESSAGE_SIZE 1024
+
+ubus_proc_handler_t ubus_proc_handler_table[] =
+{
+  {UBLX_OPEN_CONNECTION, wwan_connection_open}
+};
+
+int ubus_proc_handler_size = sizeof(ubus_proc_handler_table) / sizeof(struct ubus_proc_handler);
 
 /************************************************************
 * Function declarations.
 ************************************************************/
+static int ubus_client_process_find(int client_func);
 
 static Handle acceptClientConnection(int serverHandle);
 
@@ -53,24 +79,10 @@ static Handle getClientSocket(void* instance);
 
 static void handleReadEvent(void* instance);
 
-static int wwan_connection_open(void);
-
-
-static struct ubus_context *ctx;
-static struct blob_buf b;
-static bool simple_output = false;
-
-static ubus_proc_handler_t ubus_proc_handler_table[] =
-{
-  {UBLX_OPEN_CONNECTION, wwan_connection_open}
-};
-
-static int ubus_proc_handler_size = sizeof(ubus_proc_handler_table) / sizeof(struct ubus_proc_handler);
 
 /************************************************************
-* Function implementations.
+* Implementation of the EventHandler interface.
 ************************************************************/
-
 static int ubus_client_process_find(int client_func)
 {
   int idx;
@@ -86,89 +98,6 @@ static int ubus_client_process_find(int client_func)
   return FALSE;
 }
 
-static void test_client_subscribe_cb(struct ubus_context *ctx, struct ubus_object *obj)
-{
-  printf("Subscribers active: %d\n", obj->has_subscribers);
-}
-
-static struct ubus_object test_client_object = {
-  .subscribe_cb = test_client_subscribe_cb,
-};
-
-static void receive_call_result_data(struct ubus_request *req, int type, struct blob_attr *msg)
-{
-  char *str;
-  if (!msg)
-  {
-    return;
-  }
-  str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, simple_output ? -1 : 0);
-
-  printf("%s\n", str);
-  free(str);
-}
-
-static int client_ubus_process(char *ubus_object, char *ubus_method)
-{
-  static struct ubus_request req;
-  uint32_t id;
-  int ret;
-  const char *ubus_socket = NULL;
-
-  ctx = ubus_connect(ubus_socket);
-  if (!ctx) {
-    printf("Failed to connect to ubus\n");
-    return FALSE;
-  }
-
-  ret = ubus_add_object(ctx, &test_client_object);
-  if (ret) {
-    printf("Failed to add_object object: %s\n", ubus_strerror(ret));
-    return FALSE;
-  }
-
-  if (ubus_lookup_id(ctx, ubus_object, &id)) {
-    printf("Failed to look up test object\n");
-    return FALSE;
-  }
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_u32(&b, "id", test_client_object.id);
-
-  if(ubus_invoke(ctx, id, ubus_method, b.head, receive_call_result_data, 0, 3000) == 0)
-  {
-    ret = TRUE;
-  }
-  else
-  {
-    ret = FALSE;
-  }
-
-  ubus_free(ctx);
-  return ret;
-}
-
-static int wwan_connection_open(void)
-{
-  int ret;
-  char *wwan_object = "wwan";
-  char *wwan_method_enable = "enable";
-  char *wwan_method_connect = "connect";
-
-  ret = client_ubus_process(wwan_object, wwan_method_enable);
-  if(ret == FALSE)
-    return FALSE;
-  
-  ret = client_ubus_process(wwan_object, wwan_method_connect);
-  if(ret == FALSE)
-    return FALSE;
-
-  return TRUE;
-}
-
-/************************************************************
-* Implementation of the EventHandler interface.
-************************************************************/
 
 static Handle getClientSocket(void* instance)
 {
