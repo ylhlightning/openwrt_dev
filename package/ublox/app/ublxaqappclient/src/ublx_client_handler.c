@@ -117,3 +117,17 @@ int wwan_connection_open(void)
   return TRUE;
 }
 
+int wwan_get_addr(void)
+{
+  int ret;
+  char *wwan_object = "wwan";
+  char *wwan_method_get_addr = "getaddr";
+
+  ret = client_ubus_process(wwan_object, wwan_method_get_addr);
+  if(ret == FALSE)
+    return FALSE;
+
+  return TRUE;
+}
+
+

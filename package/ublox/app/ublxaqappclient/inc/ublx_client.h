@@ -38,11 +38,18 @@
 #include "handle.h"
 #include "server_event_notifier.h"
 
-#define UBLX_OPEN_CONNECTION 1
+
 #define UBLX_CLIENT_MSG_LEN 1024
 
 #define MSG_OK "OK"
 #define MSG_ERROR "ERROR"
+
+
+enum UBLX_UBUS_SUPPORTED_OPTION{
+  UBLX_UNSUPPORTED_ACT = 0,
+  UBLX_WWAN_OPEN_CONNECTION,
+  UBLX_WWAN_GET_ADDR,
+};
 
 /* An opaque, incomplete type for the FIRST-CLASS ADT. */
 typedef struct DiagnosticsClient* DiagnosticsClientPtr;

@@ -63,7 +63,8 @@ typedef struct ubus_proc_handler
 
 ubus_proc_handler_t ubus_proc_handler_table[] =
 {
-  {UBLX_OPEN_CONNECTION, wwan_connection_open}
+  {UBLX_WWAN_OPEN_CONNECTION, wwan_connection_open},
+  {UBLX_WWAN_GET_ADDR,   wwan_get_addr}
 };
 
 int ubus_proc_handler_size = sizeof(ubus_proc_handler_table) / sizeof(struct ubus_proc_handler);

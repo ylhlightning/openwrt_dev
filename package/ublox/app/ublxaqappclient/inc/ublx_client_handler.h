@@ -35,6 +35,8 @@
 
 int wwan_connection_open(void);
 
+int wwan_get_addr(void);
+
 #endif
 
 
