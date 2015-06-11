@@ -38,26 +38,55 @@
  * @return int * fd          [out] Modem USB interface handler.
  *         @value >0               Success
  *         @value -1               Fail               
- *                           
+ *
  */
 
 int open_modem(char *modem_port);
+
+
+
 
 /*
  * @Function name: send_cmd_to_modem
  *
  * @Description: send AT command to modem
- *   
+ * 
  * @param char * fd               [in]  modem usb interface handler.
  * @param char * cmd_name         [in]  AT command name  
  * 
  * @return @type int              [out] boolean value.
  *         @value 0               Success
  *         @value 1               Fail           
- *                           
+ *
  */
 
 int send_cmd_to_modem(int fd, char *cmd_name);
+
+
+
+
+
+/*
+ * @Function name: send_sms_to_modem
+ *
+ * @Description: send AT command to modem
+ *
+ * @param char * fd               [in]  modem usb interface handler.
+ * @param char * number           [in]  destination cellular number.
+ * @param char * sms_msg          [in]  message to be send.
+ *
+ * @return @type int              [out] boolean value.
+ *         @value 0               Success
+ *         @value 1               Fail
+ *
+ */
+
+int send_sms_to_modem(int fd, char *number, char *sms_msg);
+
+
+
+
+
 
 /*
  * function name: receive message from modem after send a at command
@@ -68,10 +97,18 @@ int send_cmd_to_modem(int fd, char *cmd_name);
  * @return @type int              [out] boolean value.
  *         @value 0               Success
  *         @value 1               Fail           
- *                           
+ *
  */
 
 int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg);
+
+
+
+
+
+
+
+
 
 /*
  * @Function name: close_modem
@@ -85,7 +122,7 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg);
  * @return @type int              [out] boolean value.
  *         @value 0               Success
  *         @value 1               Fail           
- *                           
+ *
  */
 
 int close_modem(int fd);
