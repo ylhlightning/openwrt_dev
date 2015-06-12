@@ -32,6 +32,7 @@
 
 #include "libubus.h"
 #include "lib320u.h"
+#include "ublx_client.h"
 
 int wwan_connection_open(void);
 

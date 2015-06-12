@@ -51,6 +51,8 @@ enum UBLX_UBUS_SUPPORTED_OPTION{
   UBLX_WWAN_GET_ADDR,
 };
 
+extern char ublx_wwan_public_ip_addr_msg[UBLX_CLIENT_MSG_LEN];
+
 /* An opaque, incomplete type for the FIRST-CLASS ADT. */
 typedef struct DiagnosticsClient* DiagnosticsClientPtr;
 

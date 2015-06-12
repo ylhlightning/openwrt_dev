@@ -33,6 +33,8 @@ static struct ubus_context *ctx;
 static struct blob_buf b;
 static bool simple_output = false;
 
+char ublx_wwan_public_ip_addr_msg[UBLX_CLIENT_MSG_LEN];
+
 /************************************************************
 * Function implementations.
 ************************************************************/
@@ -58,6 +60,27 @@ static void receive_call_result_data(struct ubus_request *req, int type, struct 
   printf("%s\n", str);
   free(str);
 }
+
+static void receive_call_result_address(struct ubus_request *req, int type, struct blob_attr *msg)
+{
+  char *str;
+  if (!msg)
+  {
+    return;
+  }
+  str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, simple_output ? -1 : 0);
+
+  printf("----------------------->%s\n", str);
+
+  memset(ublx_wwan_public_ip_addr_msg, 0, strlen(ublx_wwan_public_ip_addr_msg));
+
+  strncpy(ublx_wwan_public_ip_addr_msg, str, strlen(ublx_wwan_public_ip_addr_msg));
+
+  printf("------------------------>proxy public ip address: %s\n", ublx_wwan_public_ip_addr_msg);
+
+  free(str);
+}
+
 
 static int client_ubus_process(char *ubus_object, char *ubus_method)
 {
@@ -106,6 +129,8 @@ int wwan_connection_open(void)
   char *wwan_method_enable = "enable";
   char *wwan_method_connect = "connect";
 
+  printf("Enter UBLX_WWAN_OPEN_CONNECTION handler function.\n");
+
   ret = client_ubus_process(wwan_object, wwan_method_enable);
   if(ret == FALSE)
     return FALSE;
@@ -122,6 +147,8 @@ int wwan_get_addr(void)
   int ret;
   char *wwan_object = "wwan";
   char *wwan_method_get_addr = "getaddr";
+
+  printf("Enter UBLX_WWAN_GET_ADDR handler function.\n");
 
   ret = client_ubus_process(wwan_object, wwan_method_get_addr);
   if(ret == FALSE)

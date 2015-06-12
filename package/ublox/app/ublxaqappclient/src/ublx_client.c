@@ -64,7 +64,7 @@ typedef struct ubus_proc_handler
 ubus_proc_handler_t ubus_proc_handler_table[] =
 {
   {UBLX_WWAN_OPEN_CONNECTION, wwan_connection_open},
-  {UBLX_WWAN_GET_ADDR,   wwan_get_addr}
+  {UBLX_WWAN_GET_ADDR,        wwan_get_addr},
 };
 
 int ubus_proc_handler_size = sizeof(ubus_proc_handler_table) / sizeof(struct ubus_proc_handler);
@@ -87,10 +87,12 @@ static void handleReadEvent(void* instance);
 static int ubus_client_process_find(int client_func)
 {
   int idx;
+
   for(idx = 0; idx < ubus_proc_handler_size; idx++)
   {
     if(ubus_proc_handler_table[idx].client_func == client_func)
     {
+      printf("ubus proc handler found: %d.\n", idx);
       return idx;
     }
   }
@@ -125,7 +127,7 @@ static void handleReadEvent(void* instance)
       
       printf("Client: received message from client: %d, request:%d\n", client->clientSocket, clientMessage.ublx_client_func);
 
-      client_handler_idx = ubus_client_process_find(clientMessage.ublx_client_func) == FALSE;
+      client_handler_idx = ubus_client_process_find(clientMessage.ublx_client_func);
 
       if(client_handler_idx == FALSE)
       {
@@ -134,6 +136,8 @@ static void handleReadEvent(void* instance)
       }
       else
       {
+        printf("client_handler_idx: %d\n", client_handler_idx);
+
         if(ubus_proc_handler_table[client_handler_idx].proc_handler() == FALSE)
         {
            printf("Server: Client handler execution failed.\n");
@@ -142,7 +146,16 @@ static void handleReadEvent(void* instance)
         else
         {
            printf("Server: Client handler execution success.\n");
-           strncpy(clientMessage.ublx_client_reply_msg, MSG_OK, strlen(MSG_OK));
+           if(clientMessage.ublx_client_func == UBLX_WWAN_GET_ADDR)
+           {
+             strncpy(clientMessage.ublx_client_reply_msg, ublx_wwan_public_ip_addr_msg, strlen(ublx_wwan_public_ip_addr_msg));
+             printf("-------------------->ublx_wwan_public_ip_addr_msg: %s\n", ublx_wwan_public_ip_addr_msg);
+             printf("-------------------->clientMessage.ublx_client_reply_msg: %s\n", clientMessage.ublx_client_reply_msg);
+           }
+           else
+           {
+             strncpy(clientMessage.ublx_client_reply_msg, MSG_OK, strlen(MSG_OK));
+           }
         }
 
         ssize_t sendResult = send(client->clientSocket, &clientMessage, client_message_len, 0);
@@ -155,9 +168,9 @@ static void handleReadEvent(void* instance)
         {
           printf("Server: Reply client %d with message fail\n", client->clientSocket);
         }
-      }
 
-      client->eventNotifier.onClientClosed(client->eventNotifier.server, client);
+        client->eventNotifier.onClientClosed(client->eventNotifier.server, client);
+      }
    }
    
 }

@@ -34,7 +34,7 @@ struct wwan_if_request {
   struct uloop_timeout timeout;
   int fd;
   int idx;
-  char data[];
+  char data[CMD_MSG_LEN];
 };
 
 static struct blob_buf b;
@@ -153,6 +153,7 @@ static int get_addr_from_string(char *string, char *addr_string)
   char quatation_mark = '"';
   int num_quatation_mark = 0;
   char *addr_str_ptr=addr_string;
+
   char *tmp_ptr = string;
 
   while(*tmp_ptr != '\0')
@@ -174,7 +175,7 @@ static int get_addr_from_string(char *string, char *addr_string)
      return -1;
   }
 
-  addr_str_ptr = '\0';
+  *addr_str_ptr = '\0';
   return 0;
 }
 
@@ -706,6 +707,10 @@ static int wwan_if_getaddr_do(char *recv_msg)
   char client_msg[CMD_MSG_MAX_LEN] = "WWAN public ip address:";
   int ret;
 
+  memset(ip_msg, 0, strlen(ip_msg));
+
+  strcpy(ip_msg, "");
+
   printf("Command to be sent to serial port: %s\n", cmd_name_get_public_addr);
 
   ret = send_cmd_to_modem(modem_fd, cmd_name_get_public_addr);
@@ -724,8 +729,11 @@ static int wwan_if_getaddr_do(char *recv_msg)
 
   if(cmd_getaddr_result == TRUE)
   {
-    printf("WWAN interface get public address.\n");
+
     get_addr_from_string(msg, ip_msg);
+
+    printf("WWAN interface get public address: %s.\n", ip_msg);
+
     strncat(client_msg, ip_msg, strlen(ip_msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
@@ -803,6 +811,7 @@ static int wwan_if_getaddr(struct ubus_context *ctx, struct ubus_object *obj,
   }
 
   sprintf(hreq->data, format, obj->name, msgstr);
+
   ubus_defer_request(ctx, req, &hreq->req);
   hreq->timeout.cb = wwan_if_getaddr_reply;
   uloop_timeout_set(&hreq->timeout, 1000);
