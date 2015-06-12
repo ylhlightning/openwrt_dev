@@ -39,6 +39,8 @@ struct wwan_if_request {
 
 static struct blob_buf b;
 
+static int is_network_configured = 0;
+
 char cmd_name_cfun_enable[CMD_LEN]      = "at+cfun=1";
 char cmd_name_cfun_disable[CMD_LEN]     = "at+cfun=0";
 char cmd_name_cpin_query[CMD_LEN]       = "at+cpin=?";
@@ -448,6 +450,8 @@ static void wwan_network_configuration()
 
   system("echo \"nameserver 8.8.8.8\" > /etc/resolv.conf");
 
+  is_network_configured = 1;
+
 }
 
 static int wwan_if_connect_do(char *recv_msg)
@@ -492,7 +496,10 @@ static int wwan_if_connect_do(char *recv_msg)
   if((cmd_cgdcont_result == TRUE) && (cmd_active_result == TRUE))
   {
     printf("WWAN interface has actived a connection context.\n");
-    wwan_network_configuration();
+
+    if(is_network_configured == 0)
+      wwan_network_configuration();
+
     strncat(client_msg, MSG_OK, strlen(MSG_OK));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
@@ -606,6 +613,8 @@ static int wwan_if_disconnect_do(char *recv_msg)
      printf("Failed to receive message from modem\n");
      return FALSE;
   }
+
+  is_network_configured = 0;
 
   if(cmd_disconnect_result == TRUE)
   {
