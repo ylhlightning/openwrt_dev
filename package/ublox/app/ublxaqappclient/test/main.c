@@ -51,7 +51,7 @@ static int get_addr_from_string(char *string, char *addr_string)
     if(*tmp_ptr == quatation_mark)
       num_quatation_mark ++;
 
-    if((num_quatation_mark == 1) && (*tmp_ptr != quatation_mark))
+    if((num_quatation_mark == 3) && (*tmp_ptr != quatation_mark))
     {
       *addr_str_ptr = *tmp_ptr;
       addr_str_ptr ++;
@@ -59,7 +59,7 @@ static int get_addr_from_string(char *string, char *addr_string)
     tmp_ptr ++;
   }
 
-  if(num_quatation_mark != 2)
+  if(num_quatation_mark != 4)
   {
      printf("Error format string\n");
      return -1;
@@ -145,6 +145,8 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  memset(client_ip_addr, 0, strlen(client_ip_addr));
+
   strncpy(client_ip_addr, argv[1], strlen(argv[1]));
 
   printf("Active the wwan connection.\n");
@@ -153,6 +155,8 @@ int main(int argc, char *argv[])
   {
     exit(1);
   }
+  
+  printf("wwan connection established.\n");
 
   sleep(5);
 
@@ -165,7 +169,7 @@ int main(int argc, char *argv[])
 
   get_addr_from_string(client_msg, wwan_ip_addr);
 
-  printf("wwan ip address is : %s\n", wwan_ip_addr);
+  printf("%s\n", wwan_ip_addr);
 
   exit(0);
 }
