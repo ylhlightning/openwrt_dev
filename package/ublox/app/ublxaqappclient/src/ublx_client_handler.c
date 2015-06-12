@@ -70,15 +70,17 @@ static void receive_call_result_address(struct ubus_request *req, int type, stru
   }
   str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, simple_output ? -1 : 0);
 
-  printf("----------------------->%s\n", str);
-
   memset(ublx_wwan_public_ip_addr_msg, 0, strlen(ublx_wwan_public_ip_addr_msg));
 
-  strncpy(ublx_wwan_public_ip_addr_msg, str, strlen(ublx_wwan_public_ip_addr_msg));
-
-  printf("------------------------>proxy public ip address: %s\n", ublx_wwan_public_ip_addr_msg);
+  strncpy(ublx_wwan_public_ip_addr_msg, str, strlen(str));
 
   free(str);
+}
+
+static int ubus_invoke_do(struct ubus_context *ctx, uint32_t obj, const char *method,
+                struct blob_attr *msg, ubus_data_handler_t cb, void *priv, int timeout)
+{
+  return ubus_invoke(ctx, obj, method, msg, cb, priv, timeout);
 }
 
 
@@ -86,7 +88,7 @@ static int client_ubus_process(char *ubus_object, char *ubus_method)
 {
   static struct ubus_request req;
   uint32_t id;
-  int ret;
+  int ret, ret_ubus_invoke;
   const char *ubus_socket = NULL;
 
   ctx = ubus_connect(ubus_socket);
@@ -109,7 +111,16 @@ static int client_ubus_process(char *ubus_object, char *ubus_method)
   blob_buf_init(&b, 0);
   blobmsg_add_u32(&b, "id", test_client_object.id);
 
-  if(ubus_invoke(ctx, id, ubus_method, b.head, receive_call_result_data, 0, 3000) == 0)
+  if(strcmp(ubus_method, "getaddr") == 0)
+  {
+    ret_ubus_invoke = ubus_invoke_do(ctx, id, ubus_method, b.head, receive_call_result_address, 0, 3000);
+  }
+  else
+  {
+    ret_ubus_invoke = ubus_invoke_do(ctx, id, ubus_method, b.head, receive_call_result_data, 0, 3000);
+  }
+
+  if(ret_ubus_invoke == 0)
   {
     ret = TRUE;
   }
@@ -117,6 +128,7 @@ static int client_ubus_process(char *ubus_object, char *ubus_method)
   {
     ret = FALSE;
   }
+
 
   ubus_free(ctx);
   return ret;

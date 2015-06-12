@@ -149,8 +149,6 @@ static void handleReadEvent(void* instance)
            if(clientMessage.ublx_client_func == UBLX_WWAN_GET_ADDR)
            {
              strncpy(clientMessage.ublx_client_reply_msg, ublx_wwan_public_ip_addr_msg, strlen(ublx_wwan_public_ip_addr_msg));
-             printf("-------------------->ublx_wwan_public_ip_addr_msg: %s\n", ublx_wwan_public_ip_addr_msg);
-             printf("-------------------->clientMessage.ublx_client_reply_msg: %s\n", clientMessage.ublx_client_reply_msg);
            }
            else
            {
