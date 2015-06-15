@@ -84,7 +84,7 @@ static int ubus_invoke_do(struct ubus_context *ctx, uint32_t obj, const char *me
 }
 
 
-static int client_ubus_process(char *ubus_object, char *ubus_method)
+static int client_ubus_process(char *ubus_object, char *ubus_method, char *argv)
 {
   static struct ubus_request req;
   uint32_t id;
@@ -109,7 +109,14 @@ static int client_ubus_process(char *ubus_object, char *ubus_method)
   }
 
   blob_buf_init(&b, 0);
-  blobmsg_add_u32(&b, "id", test_client_object.id);
+
+  if(argv != NULL)
+  {
+    if(!blobmsg_add_json_from_string(&b, argv)) {
+      printf("Failed to parse message data\n");
+      return -1;
+    }
+  }
 
   if(strcmp(ubus_method, "getaddr") == 0)
   {
@@ -129,7 +136,6 @@ static int client_ubus_process(char *ubus_object, char *ubus_method)
     ret = FALSE;
   }
 
-
   ubus_free(ctx);
   return ret;
 }
@@ -143,11 +149,11 @@ int wwan_connection_open(void)
 
   printf("Enter UBLX_WWAN_OPEN_CONNECTION handler function.\n");
 
-  ret = client_ubus_process(wwan_object, wwan_method_enable);
+  ret = client_ubus_process(wwan_object, wwan_method_enable, NULL);
   if(ret == FALSE)
     return FALSE;
   
-  ret = client_ubus_process(wwan_object, wwan_method_connect);
+  ret = client_ubus_process(wwan_object, wwan_method_connect, NULL);
   if(ret == FALSE)
     return FALSE;
 
@@ -162,7 +168,7 @@ int wwan_get_addr(void)
 
   printf("Enter UBLX_WWAN_GET_ADDR handler function.\n");
 
-  ret = client_ubus_process(wwan_object, wwan_method_get_addr);
+  ret = client_ubus_process(wwan_object, wwan_method_get_addr, NULL);
   if(ret == FALSE)
     return FALSE;
 

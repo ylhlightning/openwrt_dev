@@ -57,13 +57,11 @@ char cmd_name_get_public_addr[CMD_LEN]  = "at!scpaddr=1";
 
 /* wwan enable */
 enum {
-  WWAN_IF_ENABLE_ID,
   WWAN_IF_ENABLE_MSG,
   __WWAN_IF_ENABLE_MAX
 };
 
 static const struct blobmsg_policy wwan_if_enable_policy[] = {
-  [WWAN_IF_ENABLE_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
   [WWAN_IF_ENABLE_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
 };
 
@@ -71,25 +69,21 @@ static const struct blobmsg_policy wwan_if_enable_policy[] = {
 
 /* wwan disable */
 enum {
-  WWAN_IF_DISABLE_ID,
   WWAN_IF_DISABLE_MSG,
   __WWAN_IF_DISABLE_MAX
 };
 
 static const struct blobmsg_policy wwan_if_disable_policy[] = {
-  [WWAN_IF_DISABLE_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
   [WWAN_IF_DISABLE_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
 };
 
 /* wwan connect */
 enum {
-  WWAN_IF_CONNECT_ID,
   WWAN_IF_CONNECT_MSG,
   __WWAN_IF_CONNECT_MAX
 };
 
 static const struct blobmsg_policy wwan_if_connect_policy[] = {
-  [WWAN_IF_CONNECT_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
   [WWAN_IF_CONNECT_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
 };
 
@@ -101,19 +95,16 @@ enum {
 };
 
 static const struct blobmsg_policy wwan_if_disconnect_policy[] = {
-  [WWAN_IF_DISCONNECT_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
   [WWAN_IF_DISCONNECT_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
 };
 
 /* wwan get public address */
 enum {
-  WWAN_IF_GETADDR_ID,
   WWAN_IF_GETADDR_MSG,
   __WWAN_IF_GETADDR_MAX
 };
 
 static const struct blobmsg_policy wwan_if_getaddr_policy[] = {
-  [WWAN_IF_GETADDR_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
   [WWAN_IF_GETADDR_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
 };
 
