@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 
   printf("Send the wwan public ip address to number:%s.\n", client_data);
 
-  if(client_cmd_send(UBLX_WWAN_GET_ADDR, client_data, client_ip_addr, client_msg) == -1)
+  if(client_cmd_send(UBLX_WWAN_SEND_ADDR, client_data, client_ip_addr, client_msg) == -1)
   {
     exit(1);
   }
