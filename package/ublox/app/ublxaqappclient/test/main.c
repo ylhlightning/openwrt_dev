@@ -38,7 +38,7 @@
 #include <arpa/inet.h> 
 #include "ublx_client.h"
 
-#define CLIENT_NUM "3920635677"
+#define CLIENT_NUM "{ \"number\": \"3920635677\" }"
 
 static int get_addr_from_string(char *string, char *addr_string)
 {
