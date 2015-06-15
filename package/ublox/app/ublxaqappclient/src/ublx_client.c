@@ -46,6 +46,8 @@
 #include "libubus.h"
 #include "lib320u.h"
 
+typedef int (*proc_handler_func)(char *);
+
 struct DiagnosticsClient
 {
    Handle clientSocket;
@@ -56,7 +58,7 @@ struct DiagnosticsClient
 typedef struct ubus_proc_handler
 {
    int client_func;
-   int (*proc_handler)(void);
+   proc_handler_func proc_handler;
 } ubus_proc_handler_t;
 
 #define MAX_MESSAGE_SIZE 1024
@@ -65,6 +67,7 @@ ubus_proc_handler_t ubus_proc_handler_table[] =
 {
   {UBLX_WWAN_OPEN_CONNECTION, wwan_connection_open},
   {UBLX_WWAN_GET_ADDR,        wwan_get_addr},
+  {UBLX_WWAN_SEND_ADDR,       wwan_send_addr},
 };
 
 int ubus_proc_handler_size = sizeof(ubus_proc_handler_table) / sizeof(struct ubus_proc_handler);
@@ -138,7 +141,7 @@ static void handleReadEvent(void* instance)
       {
         printf("client_handler_idx: %d\n", client_handler_idx);
 
-        if(ubus_proc_handler_table[client_handler_idx].proc_handler() == FALSE)
+        if(ubus_proc_handler_table[client_handler_idx].proc_handler(clientMessage.ublx_client_data) == FALSE)
         {
            printf("Server: Client handler execution failed.\n");
            strncpy(clientMessage.ublx_client_reply_msg, MSG_ERROR, strlen(MSG_ERROR));

@@ -34,9 +34,11 @@
 #include "lib320u.h"
 #include "ublx_client.h"
 
-int wwan_connection_open(void);
+int wwan_connection_open(char *argv);
 
-int wwan_get_addr(void);
+int wwan_get_addr(char *argv);
+
+int wwan_send_addr(char *argv);
 
 #endif
 

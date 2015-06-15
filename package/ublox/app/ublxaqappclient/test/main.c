@@ -38,6 +38,8 @@
 #include <arpa/inet.h> 
 #include "ublx_client.h"
 
+#define CLIENT_NUM "3920635677"
+
 static int get_addr_from_string(char *string, char *addr_string)
 {
   char quatation_mark = '"';
@@ -70,7 +72,7 @@ static int get_addr_from_string(char *string, char *addr_string)
 }
 
 
-int client_cmd_send(int client_cmd, char *client_addr, char *client_msg)
+int client_cmd_send(int client_cmd, char *client_data, char *client_addr, char *client_msg)
 {
   int sockfd = 0, n = 0;
   struct sockaddr_in serv_addr;
@@ -86,6 +88,11 @@ int client_cmd_send(int client_cmd, char *client_addr, char *client_msg)
 
   memset(&msg, 0, sizeof(msg));
   msg.ublx_client_func = client_cmd;
+
+  if(client_data != NULL)
+  {
+    strncpy(msg.ublx_client_data, client_data, strlen(client_data));
+  }
     
   memset(&serv_addr, '0', sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
@@ -138,6 +145,7 @@ int main(int argc, char *argv[])
   char client_ip_addr[128];
   char client_msg[1024];
   char wwan_ip_addr[128];
+  char client_data[1024];
 
   if(argc != 2)
   {
@@ -151,7 +159,7 @@ int main(int argc, char *argv[])
 
   printf("Active the wwan connection.\n");
 
-  if(client_cmd_send(UBLX_WWAN_OPEN_CONNECTION, client_ip_addr, client_msg) == -1)
+  if(client_cmd_send(UBLX_WWAN_OPEN_CONNECTION, NULL, client_ip_addr, client_msg) == -1)
   {
     exit(1);
   }
@@ -162,7 +170,7 @@ int main(int argc, char *argv[])
 
   printf("Retrive the wwan public ip address.\n");
 
-  if(client_cmd_send(UBLX_WWAN_GET_ADDR, client_ip_addr, client_msg) == -1)
+  if(client_cmd_send(UBLX_WWAN_GET_ADDR, NULL, client_ip_addr, client_msg) == -1)
   {
     exit(1);
   }
@@ -170,6 +178,18 @@ int main(int argc, char *argv[])
   get_addr_from_string(client_msg, wwan_ip_addr);
 
   printf("%s\n", wwan_ip_addr);
+
+
+  strncpy(client_data, CLIENT_NUM, strlen(CLIENT_NUM));
+
+  printf("Send the wwan public ip address to number:%s.\n", client_data);
+
+  if(client_cmd_send(UBLX_WWAN_GET_ADDR, client_data, client_ip_addr, client_msg) == -1)
+  {
+    exit(1);
+  }
+
+  printf("wwan public ip address message sent.\n");
 
   exit(0);
 }

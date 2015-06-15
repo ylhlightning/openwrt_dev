@@ -140,7 +140,7 @@ static int client_ubus_process(char *ubus_object, char *ubus_method, char *argv)
   return ret;
 }
 
-int wwan_connection_open(void)
+int wwan_connection_open(char *argv)
 {
   int ret;
   char *wwan_object = "wwan";
@@ -160,7 +160,7 @@ int wwan_connection_open(void)
   return TRUE;
 }
 
-int wwan_get_addr(void)
+int wwan_get_addr(char *argv)
 {
   int ret;
   char *wwan_object = "wwan";
@@ -174,5 +174,21 @@ int wwan_get_addr(void)
 
   return TRUE;
 }
+
+int wwan_send_addr(char *argv)
+{
+  int ret;
+  char *wwan_object = "wwan";
+  char *wwan_method_get_addr = "sendaddr";
+
+  printf("Enter UBLX_WWAN_SEND_ADDR handler function.\n");
+
+  ret = client_ubus_process(wwan_object, wwan_method_get_addr, argv);
+  if(ret == FALSE)
+    return FALSE;
+
+  return TRUE;
+}
+
 
 
