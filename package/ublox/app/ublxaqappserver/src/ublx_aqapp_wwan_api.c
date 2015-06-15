@@ -55,68 +55,15 @@ char cmd_name_get_public_addr[CMD_LEN]  = "at!scpaddr=1";
 /***************************************************************/
 /*Ubus object policy configuration*/
 
-/* wwan enable */
-enum {
-  WWAN_IF_ENABLE_MSG,
-  __WWAN_IF_ENABLE_MAX
-};
-
-static const struct blobmsg_policy wwan_if_enable_policy[] = {
-  [WWAN_IF_ENABLE_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
-};
-
-
-
-/* wwan disable */
-enum {
-  WWAN_IF_DISABLE_MSG,
-  __WWAN_IF_DISABLE_MAX
-};
-
-static const struct blobmsg_policy wwan_if_disable_policy[] = {
-  [WWAN_IF_DISABLE_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
-};
-
-/* wwan connect */
-enum {
-  WWAN_IF_CONNECT_MSG,
-  __WWAN_IF_CONNECT_MAX
-};
-
-static const struct blobmsg_policy wwan_if_connect_policy[] = {
-  [WWAN_IF_CONNECT_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
-};
-
-/* wwan disconnect */
-enum {
-  WWAN_IF_DISCONNECT_ID,
-  WWAN_IF_DISCONNECT_MSG,
-  __WWAN_IF_DISCONNECT_MAX
-};
-
-static const struct blobmsg_policy wwan_if_disconnect_policy[] = {
-  [WWAN_IF_DISCONNECT_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
-};
-
-/* wwan get public address */
-enum {
-  WWAN_IF_GETADDR_MSG,
-  __WWAN_IF_GETADDR_MAX
-};
-
-static const struct blobmsg_policy wwan_if_getaddr_policy[] = {
-  [WWAN_IF_GETADDR_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
-};
-
 /***************************************************************/
 /*Ubus object wwan method registration*/
 
 static const struct ubus_method wwan_methods[] = {
-  UBUS_METHOD("enable",     wwan_if_enable,     wwan_if_enable_policy),
-  UBUS_METHOD("disable",    wwan_if_disable,    wwan_if_disable_policy),
-  UBUS_METHOD("connect",    wwan_if_connect,    wwan_if_connect_policy),
-  UBUS_METHOD("disconnect", wwan_if_disconnect, wwan_if_disconnect_policy),
-  UBUS_METHOD("getaddr",    wwan_if_getaddr,    wwan_if_getaddr_policy),
+  UBUS_METHOD("enable",     wwan_if_enable),
+  UBUS_METHOD("disable",    wwan_if_disable),
+  UBUS_METHOD("connect",    wwan_if_connect),
+  UBUS_METHOD("disconnect", wwan_if_disconnect),
+  UBUS_METHOD("getaddr",    wwan_if_getaddr),
 };
 
 static struct ubus_object_type wwan_object_type =
@@ -278,19 +225,14 @@ static int wwan_if_enable(struct ubus_context *ctx, struct ubus_object *obj,
   struct wwan_if_request *hreq;
   struct blob_attr *tb[__WWAN_IF_ENABLE_MAX];
   const char *format = "%s received a message: %s";
-  char data[1024];
+  char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
-
-  blobmsg_parse(wwan_if_enable_policy, ARRAY_SIZE(wwan_if_enable_policy), tb, blob_data(msg), blob_len(msg));
-
-  if (tb[WWAN_IF_ENABLE_MSG])
-    msgstr = blobmsg_data(tb[WWAN_IF_ENABLE_MSG]);
 
   hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
   hreq = calloc(1, hreq_size);
   memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, 1024);
+  memset(msgstr, 0, CMD_MSG_LEN);
 
   if(wwan_if_enable_do(msgstr) == FALSE)
   {
@@ -394,19 +336,14 @@ static int wwan_if_disable(struct ubus_context *ctx, struct ubus_object *obj,
   struct wwan_if_request *hreq;
   struct blob_attr *tb[__WWAN_IF_DISABLE_MAX];
   const char *format = "%s received a message: %s";
-  char data[1024];
+  char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
-
-  blobmsg_parse(wwan_if_disable_policy, ARRAY_SIZE(wwan_if_disable_policy), tb, blob_data(msg), blob_len(msg));
-
-  if (tb[WWAN_IF_DISABLE_MSG])
-    msgstr = blobmsg_data(tb[WWAN_IF_DISABLE_MSG]);
 
   hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
   hreq = calloc(1, hreq_size);
   memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, 1024);
+  memset(msgstr, 0, CMD_MSG_LEN);
 
   if(wwan_if_disable_do(msgstr) == FALSE)
   {
@@ -548,19 +485,14 @@ static int wwan_if_connect(struct ubus_context *ctx, struct ubus_object *obj,
   struct wwan_if_request *hreq;
   struct blob_attr *tb[__WWAN_IF_CONNECT_MAX];
   const char *format = "%s received a message: %s";
-  char data[1024];
+  char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
-
-  blobmsg_parse(wwan_if_connect_policy, ARRAY_SIZE(wwan_if_connect_policy), tb, blob_data(msg), blob_len(msg));
-
-  if (tb[WWAN_IF_CONNECT_MSG])
-    msgstr = blobmsg_data(tb[WWAN_IF_CONNECT_MSG]);
 
   hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
   hreq = calloc(1, hreq_size);
   memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, 1024);
+  memset(msgstr, 0, CMD_MSG_LEN);
 
   if(wwan_if_connect_do(msgstr) == FALSE)
   {
@@ -667,19 +599,14 @@ static int wwan_if_disconnect(struct ubus_context *ctx, struct ubus_object *obj,
   struct wwan_if_request *hreq;
   struct blob_attr *tb[__WWAN_IF_DISCONNECT_MAX];
   const char *format = "%s received a message: %s";
-  char data[1024];
+  char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
-
-  blobmsg_parse(wwan_if_disconnect_policy, ARRAY_SIZE(wwan_if_disconnect_policy), tb, blob_data(msg), blob_len(msg));
-
-  if (tb[WWAN_IF_DISCONNECT_MSG])
-    msgstr = blobmsg_data(tb[WWAN_IF_DISCONNECT_MSG]);
 
   hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
   hreq = calloc(1, hreq_size);
   memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, 1024);
+  memset(msgstr, 0, CMD_MSG_LEN);
 
   if(wwan_if_disconnect_do(msgstr) == FALSE)
   {
@@ -791,19 +718,14 @@ static int wwan_if_getaddr(struct ubus_context *ctx, struct ubus_object *obj,
   struct wwan_if_request *hreq;
   struct blob_attr *tb[__WWAN_IF_GETADDR_MAX];
   const char *format = "%s received a message: %s";
-  char data[1024];
+  char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
-
-  blobmsg_parse(wwan_if_getaddr_policy, ARRAY_SIZE(wwan_if_getaddr_policy), tb, blob_data(msg), blob_len(msg));
-
-  if (tb[WWAN_IF_GETADDR_MSG])
-    msgstr = blobmsg_data(tb[WWAN_IF_GETADDR_MSG]);
 
   hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
   hreq = calloc(1, hreq_size);
   memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, 1024);
+  memset(msgstr, 0, CMD_MSG_LEN);
 
   if(wwan_if_getaddr_do(msgstr) == FALSE)
   {
@@ -818,8 +740,6 @@ static int wwan_if_getaddr(struct ubus_context *ctx, struct ubus_object *obj,
 
   return 0;
 }
-
-
 
 
 
