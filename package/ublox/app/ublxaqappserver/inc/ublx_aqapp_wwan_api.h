@@ -83,6 +83,14 @@ static int wwan_if_getaddr(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg);
 
+static int wwan_if_sendaddr_do(char *recv_msg, char *num);
+
+static void wwan_if_sendaddr_reply(struct uloop_timeout *t);
+
+static int wwan_if_sendaddr(struct ubus_context *ctx, struct ubus_object *obj,
+          struct ubus_request_data *req, const char *method,
+          struct blob_attr *msg);
+
 
 #endif
 
