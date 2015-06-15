@@ -100,6 +100,7 @@ static int client_ubus_process(char *ubus_object, char *ubus_method, char *argv)
   ret = ubus_add_object(ctx, &test_client_object);
   if (ret) {
     printf("Failed to add_object object: %s\n", ubus_strerror(ret));
+
     return FALSE;
   }
 
@@ -127,7 +128,7 @@ static int client_ubus_process(char *ubus_object, char *ubus_method, char *argv)
     ret_ubus_invoke = ubus_invoke_do(ctx, id, ubus_method, b.head, receive_call_result_data, 0, 3000);
   }
 
-  if(ret_ubus_invoke == 0)
+  if(ret_ubus_invoke == 0 || ret_ubus_invoke == 7)
   {
     ret = TRUE;
   }
@@ -184,6 +185,7 @@ int wwan_send_addr(char *argv)
   printf("Enter UBLX_WWAN_SEND_ADDR handler function.\n");
 
   ret = client_ubus_process(wwan_object, wwan_method_get_addr, argv);
+
   if(ret == FALSE)
     return FALSE;
 

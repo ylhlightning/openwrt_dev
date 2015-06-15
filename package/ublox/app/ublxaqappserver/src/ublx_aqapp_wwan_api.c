@@ -756,10 +756,32 @@ static int wwan_if_getaddr(struct ubus_context *ctx, struct ubus_object *obj,
 /*Ubus object method handler function*/
 
 /* wwan send pubblic address via sms */
+void append_quotation_mark(char *num, char *str_append)
+{
+  char *ptr_num = num;
+  char *ptr_append = str_append;
+
+  *ptr_append = '"';
+  ptr_append ++;
+
+  while(*ptr_num != '\0')
+  {
+    *ptr_append ++ = *ptr_num ++;
+  }
+
+  *ptr_append = '"';
+
+  ptr_append ++;
+  *ptr_append = '\0';
+
+  return str_append;
+}
+
 
 static int wwan_if_sendaddr_do(char *recv_msg, char *num)
 {
   int cmd_smsconf_result, cmd_sendaddr_result;
+  char num_append[20];
   char msg[CMD_MSG_MAX_LEN];
   char client_msg[CMD_MSG_MAX_LEN] = "Send WWAN public ip address via sms:";
   int ret;
@@ -782,7 +804,9 @@ static int wwan_if_sendaddr_do(char *recv_msg, char *num)
 
   printf("Command to be sent to serial port: AT+CMGS\n");
 
-  ret = send_sms_to_modem(modem_fd, num, ublx_wwan_public_ip_addr_msg);
+  append_quotation_mark(num, num_append);
+
+  ret = send_sms_to_modem(modem_fd, num_append, ublx_wwan_public_ip_addr_msg);
   if(ret < 0)
   {
      printf("Failed to send command to modem\n");
@@ -805,7 +829,7 @@ static int wwan_if_sendaddr_do(char *recv_msg, char *num)
   }
   else
   {
-    printf("WWAN interface get public failed.\n");
+    printf("WWAN interface send public failed.\n");
     strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;
@@ -870,7 +894,7 @@ static int wwan_if_sendaddr(struct ubus_context *ctx, struct ubus_object *obj,
   memset(hreq, 0, hreq_size);
   memset(msgstr, 0, CMD_MSG_LEN);
 
-  if(wwan_if_sendaddr_do(msgstr, tb[WWAN_IF_SENDADDR_NUM]) == FALSE)
+  if(wwan_if_sendaddr_do(msgstr, blobmsg_data(tb[WWAN_IF_SENDADDR_NUM])) == FALSE)
   {
     printf("wwan_if_sendaddr failed.\n");
   }
