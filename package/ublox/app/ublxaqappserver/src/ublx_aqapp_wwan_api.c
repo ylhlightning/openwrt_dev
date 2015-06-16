@@ -389,8 +389,11 @@ static void wwan_network_configuration()
 
   system("echo \"nameserver 8.8.8.8\" > /etc/resolv.conf");
 
-  is_network_configured = 1;
+  sleep(0.1);
 
+  system("iptables -t nat -A POSTROUTING -o wwan0 -j MASQUERADE");
+
+  is_network_configured = 1;
 }
 
 static int wwan_if_connect_do(char *recv_msg)

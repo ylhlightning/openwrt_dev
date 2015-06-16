@@ -42,6 +42,90 @@
 
 #define CLIENT_NUM "{ \"number\": \"3920635677\" }"
 #define IP_QUERY "www.google.it"
+#define SERVER_ADDR "151.9.34.82"
+#define SERVER_PORT 8445
+#define BUFFER_SIZE 1024
+#define FILE_NAME_MAX_SIZE 512
+#define FILE_NAME "hello.txt"
+
+int file_download(void)
+{
+  struct sockaddr_in client_addr;
+  bzero(&client_addr,sizeof(client_addr));
+  client_addr.sin_family = AF_INET;
+  client_addr.sin_addr.s_addr = htons(INADDR_ANY);
+  client_addr.sin_port = htons(0);
+
+  int client_socket = socket(AF_INET,SOCK_STREAM,0);
+  if( client_socket < 0)
+  {
+    printf("Create Socket Failed!\n");
+    return -1;
+  }
+
+  if( bind(client_socket,(struct sockaddr*)&client_addr,sizeof(client_addr)))
+  {
+    printf("Client Bind Port Failed!\n");
+    return -1;
+  }
+
+
+  struct sockaddr_in server_addr;
+  bzero(&server_addr,sizeof(server_addr));
+  server_addr.sin_family = AF_INET;
+  if(inet_aton(SERVER_ADDR,&server_addr.sin_addr) == 0)
+  {
+    printf("Server IP Address Error!\n");
+    return -1;
+  }
+  server_addr.sin_port = htons(SERVER_PORT);
+  socklen_t server_addr_length = sizeof(server_addr);
+
+  if(connect(client_socket,(struct sockaddr*)&server_addr, server_addr_length) < 0)
+  {
+    printf("Can Not Connect To %s!\n",SERVER_ADDR);
+    return -1;
+  }
+
+  char buffer[BUFFER_SIZE];
+  bzero(buffer,BUFFER_SIZE);
+  strncpy(buffer, FILE_NAME, strlen(FILE_NAME)>BUFFER_SIZE?BUFFER_SIZE:strlen(FILE_NAME));
+
+  send(client_socket,buffer,BUFFER_SIZE,0);
+
+  FILE * fp = fopen(FILE_NAME,"w");
+  if(NULL == fp )
+  {
+    printf("File:\t%s Can Not Open To Write\n", FILE_NAME);
+    return -1;
+  }
+
+  bzero(buffer,BUFFER_SIZE);
+  int length = 0;
+  while( length = recv(client_socket,buffer,BUFFER_SIZE,0))
+  {
+    if(length < 0)
+    {
+      printf("Recieve Data From Server %s Failed!\n", SERVER_ADDR);
+      break;
+    }
+
+    int write_length = fwrite(buffer,sizeof(char),length,fp);
+    if (write_length<length)
+    {
+      printf("File:\t%s Write Failed\n", FILE_NAME);
+      break;
+    }
+    bzero(buffer,BUFFER_SIZE);
+  }
+  printf("Recieve File:\t %s From Server[%s] Finished\n",FILE_NAME, SERVER_ADDR);
+
+  fclose(fp);
+
+  close(client_socket);
+  return 0;
+}
+
 
 static int query_dns(char *ip_host)
 {
@@ -240,6 +324,17 @@ int main(int argc, char *argv[])
   printf("Test network connection via wwan.\n");
 
   query_dns(IP_QUERY);
+
+  printf("Download a file from server :%s\n", SERVER_ADDR);
+
+  if (file_download()==-1)
+  {
+    printf("Failed to download file.\n");
+  }
+  else
+  {
+    printf("File downloaded.\n");
+  }
 
   exit(0);
 }
