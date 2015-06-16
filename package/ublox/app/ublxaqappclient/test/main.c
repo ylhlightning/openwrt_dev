@@ -272,7 +272,6 @@ int client_cmd_send(int client_cmd, char *client_data, char *client_addr, char *
 
 int main(int argc, char *argv[])
 {
-  char client_ip_addr[128];
   char client_msg[1024];
   char wwan_ip_addr[128];
   char client_data[1024];
@@ -283,13 +282,9 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  memset(client_ip_addr, 0, strlen(client_ip_addr));
-
-  strncpy(client_ip_addr, argv[1], strlen(argv[1]));
-
   printf("Active the wwan connection.\n");
 
-  if(client_cmd_send(UBLX_WWAN_OPEN_CONNECTION, NULL, client_ip_addr, client_msg) == -1)
+  if(client_cmd_send(UBLX_WWAN_OPEN_CONNECTION, NULL, argv[1], client_msg) == -1)
   {
     exit(1);
   }
@@ -300,7 +295,7 @@ int main(int argc, char *argv[])
 
   printf("Retrive the wwan public ip address.\n");
 
-  if(client_cmd_send(UBLX_WWAN_GET_ADDR, NULL, client_ip_addr, client_msg) == -1)
+  if(client_cmd_send(UBLX_WWAN_GET_ADDR, NULL, argv[1], client_msg) == -1)
   {
     exit(1);
   }
@@ -314,7 +309,7 @@ int main(int argc, char *argv[])
 
   printf("Send the wwan public ip address to number:%s.\n", client_data);
 
-  if(client_cmd_send(UBLX_WWAN_SEND_ADDR, client_data, client_ip_addr, client_msg) == -1)
+  if(client_cmd_send(UBLX_WWAN_SEND_ADDR, client_data, argv[1], client_msg) == -1)
   {
     exit(1);
   }
