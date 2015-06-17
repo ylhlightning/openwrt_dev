@@ -33,7 +33,9 @@
 #define __REACTOR_H__
 
 #include "event_handler.h"
+#include "thpool.h"
 
+extern threadpool thpool;
 void Register(EventHandler* handler);
 void Unregister(EventHandler* handler);
 

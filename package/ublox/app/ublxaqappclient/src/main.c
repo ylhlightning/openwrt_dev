@@ -34,7 +34,6 @@
 
 #include <stddef.h>
 
-
 int main(void){
    
    /* Create a server and enter an eternal event loop, watching 
@@ -42,6 +41,10 @@ int main(void){
    
    const unsigned int serverPort = 5000;
    DiagnosticsServerPtr server = createServer(serverPort);
+
+#ifdef UBLX_USE_THREAD_POOL
+   thpool = thpool_init(4);
+#endif
 
    if(NULL == server) {
       error("Failed to create the server");
@@ -51,4 +54,10 @@ int main(void){
    for(;;){
       HandleEvents();
    }
+
+#ifdef UBLX_USE_THREAD_POOL
+   thpool_destroy(thpool);
+#endif
 }
+
+

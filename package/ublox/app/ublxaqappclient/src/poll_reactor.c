@@ -235,8 +235,12 @@ static void dispatchSignalledHandles(const struct pollfd* fds, size_t noOfHandle
          EventHandler* signalledHandler = findHandler(fds[i].fd);
 
          if(NULL != signalledHandler){
-            signalledHandler-> handleEvent(signalledHandler->instance);
-		 }
+#ifdef UBLX_USE_THREAD_POOL
+           thpool_add_work(thpool, (void *)signalledHandler->handleEvent, signalledHandler->instance);
+#else
+           signalledHandler->handleEvent(signalledHandler->instance);
+#endif
+         }
       }
    }
 }

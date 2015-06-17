@@ -64,13 +64,19 @@ PROJECT_SOURCEFILES += \
 
 # Include directories
 PROJECT_INCLUDEDIRS += $(TOPDIR)/package/ublox/lib/lib320u/inc\
+                       $(TOPDIR)/package/ublox/lib/libthreadpool/inc\
                        inc
 
 # Library dependency
-PROJECT_LIBRARIES :=-l320u -lubus -lubox -lblobmsg_json
+PROJECT_LIBRARIES :=-lubus -lubox -lblobmsg_json -lpthread -lrt
+
+PROJECT_LIBRARIES +=-L$(BUILD_DIR)/lib320u -l320u
+
+PROJECT_LIBRARIES +=-L$(BUILD_DIR)/libthreadpool -lthreadpool
 
 # CFLAGS 
-PROJECT_DEFINITIONS += \
+PROJECT_DEFINITIONS +=\
+#PROJECT_DEFINITIONS +=UBLX_USE_THREAD_POOL
 
 # Package configuration
 define Package/$(PKG_NAME)/Default
@@ -89,7 +95,7 @@ endef
 define Package/$(PKG_NAME)
 $(call Package/$(PKG_NAME)/Default)
   TITLE += (library dependency)
-  DEPENDS:=+lib320u +librt +libubus +libubox +libblobmsg-json
+  DEPENDS:=+lib320u +libthreadpool +librt +libpthread +libubus +libubox +libblobmsg-json
 endef
 
 ########################################################

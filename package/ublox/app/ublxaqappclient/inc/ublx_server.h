@@ -31,8 +31,12 @@
 #ifndef __UBLX_SERVER_H__
 #define __UBLX_SERVER_H__
 
+#include "thpool.h"
+
 /* An opaque, incomplete type for the FIRST-CLASS ADT. */
 typedef struct DiagnosticsServer* DiagnosticsServerPtr;
+
+threadpool thpool;
 
 /**
 * Creates a server listening for connect requests on the given port.

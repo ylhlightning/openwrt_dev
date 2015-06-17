@@ -62,7 +62,7 @@ COMPONENT_DEFINITIONS += \
 
 
 # Library dependency
-COMPONENT_LIBRARIES :=-lrt -lpthread
+COMPONENT_LIBRARIES :=
 
 # Package configuration
 define  Package/$(PKG_NAME)
@@ -111,3 +111,5 @@ define Package/$(PKG_NAME)/install
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
+
+
