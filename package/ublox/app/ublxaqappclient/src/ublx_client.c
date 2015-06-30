@@ -46,6 +46,11 @@
 #include "libubus.h"
 #include "lib320u.h"
 
+#ifdef UBLX_USE_THREAD_POOL
+#include <semaphore.h>
+sem_t mutex;
+#endif
+
 typedef int (*proc_handler_func)(char *);
 
 struct DiagnosticsClient
@@ -111,69 +116,81 @@ static Handle getClientSocket(void* instance)
    return client->clientSocket;
 }
 
-static void handleReadEvent(void* instance)
+static void handle_do(const DiagnosticsClientPtr client)
 {
-   const DiagnosticsClientPtr client = instance;
-  
-   ublx_client_msg_t clientMessage;
+  ublx_client_msg_t clientMessage;
 
-   int client_message_len = sizeof(clientMessage);
+  int client_message_len = sizeof(clientMessage);
 
-   int client_handler_idx;
+  int client_handler_idx;
 
-   const ssize_t receiveResult = recv(client->clientSocket, &clientMessage, client_message_len, 0);
-   
-   if(0 < receiveResult) {
-      /* In the real world, we would probably put a protocol on top of TCP/IP in 
-      order to be able to restore the message out of the byte stream (it is no 
-      guarantee that the complete message is received in one recv(). */
-      
-      printf("Client: received message from client: %d, request:%d\n", client->clientSocket, clientMessage.ublx_client_func);
+  const ssize_t receiveResult = recv(client->clientSocket, &clientMessage, client_message_len, 0);
 
-      client_handler_idx = ubus_client_process_find(clientMessage.ublx_client_func);
+  if(0 < receiveResult) {
+    /* In the real world, we would probably put a protocol on top of TCP/IP in 
+    order to be able to restore the message out of the byte stream (it is no 
+    guarantee that the complete message is received in one recv(). */
 
-      if(client_handler_idx == FALSE)
+    printf("Client: received message from client: %d, request:%d\n", client->clientSocket, clientMessage.ublx_client_func);
+
+    client_handler_idx = ubus_client_process_find(clientMessage.ublx_client_func);
+
+    if(client_handler_idx == FALSE)
+    {
+      printf("Server: can not find client %d handler function\n", client->clientSocket);
+      client->eventNotifier.onClientClosed(client->eventNotifier.server, client);
+    }
+    else
+    {
+      printf("client_handler_idx: %d\n", client_handler_idx);
+
+      if(ubus_proc_handler_table[client_handler_idx].proc_handler(clientMessage.ublx_client_data) == FALSE)
       {
-        printf("Server: can not find client %d handler function\n", client->clientSocket);
-        client->eventNotifier.onClientClosed(client->eventNotifier.server, client);
+        printf("Server: Client handler execution failed.\n");
+        strncpy(clientMessage.ublx_client_reply_msg, MSG_ERROR, strlen(MSG_ERROR));
       }
       else
       {
-        printf("client_handler_idx: %d\n", client_handler_idx);
-
-        if(ubus_proc_handler_table[client_handler_idx].proc_handler(clientMessage.ublx_client_data) == FALSE)
+        printf("Server: Client handler execution success.\n");
+        if(clientMessage.ublx_client_func == UBLX_WWAN_GET_ADDR)
         {
-           printf("Server: Client handler execution failed.\n");
-           strncpy(clientMessage.ublx_client_reply_msg, MSG_ERROR, strlen(MSG_ERROR));
+          strncpy(clientMessage.ublx_client_reply_msg, ublx_wwan_public_ip_addr_msg, strlen(ublx_wwan_public_ip_addr_msg));
         }
         else
         {
-           printf("Server: Client handler execution success.\n");
-           if(clientMessage.ublx_client_func == UBLX_WWAN_GET_ADDR)
-           {
-             strncpy(clientMessage.ublx_client_reply_msg, ublx_wwan_public_ip_addr_msg, strlen(ublx_wwan_public_ip_addr_msg));
-           }
-           else
-           {
-             strncpy(clientMessage.ublx_client_reply_msg, MSG_OK, strlen(MSG_OK));
-           }
+          strncpy(clientMessage.ublx_client_reply_msg, MSG_OK, strlen(MSG_OK));
         }
-
-        ssize_t sendResult = send(client->clientSocket, &clientMessage, client_message_len, 0);
-
-        if(0 < sendResult)
-        {
-          printf("Server: Reply client %d with message success\n", client->clientSocket);
-        }
-        else
-        {
-          printf("Server: Reply client %d with message fail\n", client->clientSocket);
-        }
-
-        client->eventNotifier.onClientClosed(client->eventNotifier.server, client);
       }
-   }
-   
+
+      ssize_t sendResult = send(client->clientSocket, &clientMessage, client_message_len, 0);
+
+      if(0 < sendResult)
+      {
+        printf("Server: Reply client %d with message success\n", client->clientSocket);
+      }
+      else
+      {
+        printf("Server: Reply client %d with message fail\n", client->clientSocket);
+      }
+
+      client->eventNotifier.onClientClosed(client->eventNotifier.server, client);
+    }
+  }
+}
+
+
+static void handleReadEvent(void* instance)
+{
+  const DiagnosticsClientPtr client = instance;
+
+#ifdef UBLX_USE_THREAD_POOL
+   sem_init(&mutex, 0, 0);
+   thpool_add_work(thpool, (void *)handle_do, client);
+   sem_wait(&mutex);
+   sem_destroy(&mutex);
+#else
+   handle_do(client);
+#endif
 }
 
 /************************************************************

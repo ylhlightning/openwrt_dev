@@ -32,8 +32,6 @@
 
 struct ubus_context *ctx;
 
-static struct ubus_subscriber test_event;
-
 
 /*
 char modem_port_name[] = "/dev/ttyUSB3";
@@ -53,12 +51,6 @@ static void server_main(void)
   }
 
   ublx_add_object_wwan();
-
-  ret = ubus_register_subscriber(ctx, &test_event);
-  if (ret)
-  {
-    fprintf(stderr, "Failed to add watch handler: %s\n", ubus_strerror(ret));
-  }
 
   uloop_run();
 }

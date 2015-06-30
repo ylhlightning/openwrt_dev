@@ -170,9 +170,9 @@ static int removeFromRegistry(EventHandler* handler)
       if(registeredHandlers[i].isUsed && (registeredHandlers[i].handler.instance == handler->instance)) {
          /* The given event handler is found -> mark it as unused and terminate the loop. */
          registeredHandlers[i].isUsed = 0;
-		 nodeRemoved = 1;
+         nodeRemoved = 1;
          
-		 (void) printf("Ublox Server: Removed event handler with ID = %d\n", registeredHandlers[i].fd.fd);
+         (void) printf("Ublox Server: Removed event handler with ID = %d\n", registeredHandlers[i].fd.fd);
       }
    }
    
@@ -235,11 +235,7 @@ static void dispatchSignalledHandles(const struct pollfd* fds, size_t noOfHandle
          EventHandler* signalledHandler = findHandler(fds[i].fd);
 
          if(NULL != signalledHandler){
-#ifdef UBLX_USE_THREAD_POOL
-           thpool_add_work(thpool, (void *)signalledHandler->handleEvent, signalledHandler->instance);
-#else
            signalledHandler->handleEvent(signalledHandler->instance);
-#endif
          }
       }
    }
