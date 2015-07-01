@@ -83,7 +83,6 @@ void ubus_async_call(char *msg, uint32_t id)
   req.fd_cb = test_client_fd_cb;
   req.complete_cb = test_client_complete_cb;
   ubus_complete_request_async(ctx, &req);
-  uloop_timeout_set(&count_timer, 2000);
 }
 
 
