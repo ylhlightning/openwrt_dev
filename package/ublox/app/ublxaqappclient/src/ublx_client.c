@@ -127,8 +127,8 @@ static void handle_do(const DiagnosticsClientPtr client)
   const ssize_t receiveResult = recv(client->clientSocket, &clientMessage, client_message_len, 0);
 
   if(0 < receiveResult) {
-    /* In the real world, we would probably put a protocol on top of TCP/IP in 
-    order to be able to restore the message out of the byte stream (it is no 
+    /* In the real world, we would probably put a protocol on top of TCP/IP in
+    order to be able to restore the message out of the byte stream (it is no
     guarantee that the complete message is received in one recv(). */
 
     printf("Client: received message from client: %d, request:%d\n", client->clientSocket, clientMessage.ublx_client_func);
