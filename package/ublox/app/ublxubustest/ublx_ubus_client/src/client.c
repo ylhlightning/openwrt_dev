@@ -76,10 +76,17 @@ void ubus_async_call(uint32_t id, char *ubus_method)
 
   static struct ubus_request req;
 
+  /* init message buffer */
   blob_buf_init(&b, 0);
+
+  /* invoke an asynchronized ubus call. */
   ubus_invoke_async(ctx, id, ubus_method, b.head, &req);
+
+  /* install handle callback function. */
   req.data_cb = receive_call_result;
   req.complete_cb = test_client_complete_cb;
+
+  /*Mark this ubus instance as asychronized method.*/
   ubus_complete_request_async(ctx, &req);
 
   uloop_run();
@@ -121,14 +128,17 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+/* add this ubus instance into uloop. */
   ubus_add_uloop(ctx);
 
   if(is_async_call == 1)
   {
+/*Asynchronized method call example*/
     ubus_async_call(id, ubus_method);
   }
   else
   {
+/*Synchronized method call example*/
     ubus_sync_call(id, ubus_method);
   }
 
