@@ -41,11 +41,6 @@ static char *ubus_object = "test";
 static char *ubus_method = "hello";
 static int is_async_call = 0;
 
-static void test_client_fd_cb(struct ubus_request *req, int fd)
-{
-  printf("Got fd from the server\n");
-}
-
 static void test_client_complete_cb(struct ubus_request *req, int ret)
 {
   printf("completed request, ret: %d\n", ret);
