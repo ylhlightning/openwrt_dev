@@ -83,6 +83,7 @@ int send_cmd_to_modem(int fd, char *cmd_name);
 
 int send_sms_to_modem(int fd, char *number, char *sms_msg);
 
+int send_sms_to_modem_with_cmd(int fd, char *cmd_name, char *sms_msg);
 
 
 

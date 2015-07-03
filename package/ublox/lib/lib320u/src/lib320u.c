@@ -295,6 +295,68 @@ int send_sms_to_modem(int fd, char *number, char *sms_msg)
   return TRUE;
 }
 
+int send_sms_to_modem_with_cmd(int fd, char *cmd_name, char *sms_msg)
+{
+  ssize_t write_bytes;
+  size_t cmd_len;
+  size_t msg_len = strlen(sms_msg);
+  char ctrl_z = '\x1A';
+  char ctrl_z_bit[2];
+
+  sprintf(ctrl_z_bit, "%c", ctrl_z);
+
+  cmd_len = strlen(cmd_name);
+
+  strncat(cmd_name, "\r", cmd_len + 1);
+
+  /* send an AT command followed by a CR */
+  if ((write_bytes = write(fd, cmd_name, cmd_len + 1)) < cmd_len+1)
+  {
+    printf("write error: %s\n",strerror(errno));
+    return FALSE;
+  }
+  else
+  {
+    printf("Successful to write %d to modem serial port\n", write_bytes);
+  }
+
+  if(cmd_len)
+  {
+      sleep(2);
+
+      /* send a message */
+      if ((write_bytes = write(fd, sms_msg, msg_len + 1)) < msg_len+1)
+      {
+        printf("write error: %s\n",strerror(errno));
+        return FALSE;
+      }
+      else
+      {
+        printf("Successful to send %d byte messages [%s] to modem serial port\n", write_bytes, sms_msg);
+      }
+
+      sleep(1);
+
+      /* send a message followed by CTRL-Z  */
+      if ((write_bytes = write(fd, ctrl_z_bit, 1)) < 1)
+      {
+        printf("write error: %s\n",strerror(errno));
+        return FALSE;
+      }
+      else
+      {
+        printf("Successful to send CTRL-Z\n");
+      }
+
+  }
+
+  /*flush all read write buffer */
+  tcflush(fd, TCIOFLUSH);
+
+  return TRUE;
+}
+
+
 
 int close_modem(int fd)
 {
