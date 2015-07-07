@@ -58,7 +58,7 @@ enum {
 };
 
 static const struct blobmsg_policy ublx_at_send_sms_policy[__UBLX_SEND_SMS_MAX] = {
-  [UBLX_SEND_SMS_NUM] = { .name = "number", .type = BLOBMSG_TYPE_STRING },
+  [UBLX_SEND_SMS_NUM] = { .name = "cmd", .type = BLOBMSG_TYPE_STRING },
   [UBLX_SEND_SMS_MSG] = { .name = "message", .type = BLOBMSG_TYPE_STRING },
 };
 
@@ -125,7 +125,7 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
   if(cmd_send_cmd_result == TRUE)
   {
     printf("send at command:%s successful.\n", cmd);
-    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    strncat(client_msg, msg, strlen(msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }

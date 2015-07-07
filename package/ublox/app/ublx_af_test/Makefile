@@ -29,7 +29,7 @@
 # $Log      ::                               
 ###########################################################
 
-THIS_PROJECT_NAME =ublxafserver
+THIS_PROJECT_NAME =ublxaftester
 
 # -----------------------------------------------------------------------------
 # Global makerules
@@ -53,15 +53,13 @@ PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
 
 # Source files
-PROJECT_SOURCEFILES += src/ublx_af_server.c \
-                       src/ublx_af_api.c
+PROJECT_SOURCEFILES += src/ublx_af_test.c
 
 # Include directories
-PROJECT_INCLUDEDIRS += $(TOPDIR)/package/ublox/lib/lib320u/inc \
-                       inc
+PROJECT_INCLUDEDIRS += \
 
 # Library dependency
-PROJECT_LIBRARIES :=-l320u -lubox -lubus -lblobmsg_json
+PROJECT_LIBRARIES :=-lubox -lubus -lblobmsg_json
 
 # CFLAGS 
 PROJECT_DEFINITIONS += \
@@ -76,14 +74,14 @@ endef
 
 # Package description
 define Package/$(PKG_NAME)/description
-ublx ubus at server, which register ublox proprity resource objects in ubus format, and communicate with ubus daemon.
+ublxafserver test application.
 endef
 
 # Package dependency
 define Package/$(PKG_NAME)
 $(call Package/$(PKG_NAME)/Default)
   TITLE += (library dependency)
-  DEPENDS:=+lib320u +librt +libubox +libubus +libblobmsg-json
+  DEPENDS:=+librt +libubox +libubus +libblobmsg-json
 endef
 
 ########################################################
@@ -103,7 +101,7 @@ define Build/Prepare
 endef
 
 define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) -g -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) -lrt $(TARGET_LDFLAGS)
+	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) -lrt $(TARGET_LDFLAGS)
 endef
 
 define Package/$(PKG_NAME)/install

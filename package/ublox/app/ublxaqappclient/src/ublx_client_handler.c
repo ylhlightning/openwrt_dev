@@ -100,7 +100,6 @@ static int client_ubus_process(char *ubus_object, char *ubus_method, char *argv)
   ret = ubus_add_object(ctx, &test_client_object);
   if (ret) {
     printf("Failed to add_object object: %s\n", ubus_strerror(ret));
-
     return FALSE;
   }
 
