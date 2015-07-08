@@ -196,7 +196,7 @@ static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
   memset(hreq, 0, hreq_size);
   memset(msgstr, 0, CMD_MSG_LEN);
 
-  if(ublx_at_send_cmd_do(msgstr, blobmsg_data(tb[UBLX_SEND_SMS_NUM])) == FALSE)
+  if(ublx_at_send_cmd_do(msgstr, blobmsg_data(tb[UBLX_SEND_CMD_STR])) == FALSE)
   {
     printf("ublx at send cmd failed.\n");
   }
@@ -245,12 +245,13 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
   char msg[CMD_MSG_MAX_LEN];
   char client_msg[CMD_MSG_MAX_LEN] = "Send message via sms:";
   int ret;
+  char tmp_msg[5] = "test";
 
-  printf("Command to be sent to serial port: AT+CMGS\n");
+  printf("Command to be sent to serial port: %s with message: %s\n", cmd, tmp_msg);
 
   append_quotation_mark(cmd, num_append);
 
-  ret = send_sms_to_modem_with_cmd(modem_fd, cmd, sms_msg);
+  ret = send_sms_to_modem_with_cmd(modem_fd, cmd, tmp_msg);
   if(ret < 0)
   {
      printf("Failed to send command to modem\n");
