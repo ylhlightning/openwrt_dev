@@ -75,13 +75,13 @@ static struct ubus_context *ubus_init(uint32_t *id, char *ubus_object, int is_as
   ctx = ubus_connect(ubus_socket);
   if (!ctx) {
     printf("Failed to connect to ubus\n");
-    retrun NULL;
+    return NULL;
   }
 
   /* ubus lookup object */
   if (ubus_lookup_id(ctx, ubus_object, id)) {
     printf("Failed to look up test object\n");
-    retrun NULL;
+    return NULL;
   }
 
   if(is_async_call == 1)
