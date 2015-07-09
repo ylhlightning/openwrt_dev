@@ -52,13 +52,13 @@ static const struct blobmsg_policy ublx_at_send_cmd_policy[__UBLX_SEND_CMD_MAX] 
 };
 
 enum {
-  UBLX_SEND_SMS_NUM,
+  UBLX_SEND_SMS_CMD,
   UBLX_SEND_SMS_MSG,
   __UBLX_SEND_SMS_MAX,
 };
 
 static const struct blobmsg_policy ublx_at_send_sms_policy[__UBLX_SEND_SMS_MAX] = {
-  [UBLX_SEND_SMS_NUM] = { .name = "cmd", .type = BLOBMSG_TYPE_STRING },
+  [UBLX_SEND_SMS_CMD] = { .name = "cmd", .type = BLOBMSG_TYPE_STRING },
   [UBLX_SEND_SMS_MSG] = { .name = "message", .type = BLOBMSG_TYPE_STRING },
 };
 
@@ -245,13 +245,13 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
   char msg[CMD_MSG_MAX_LEN];
   char client_msg[CMD_MSG_MAX_LEN] = "Send message via sms:";
   int ret;
-  char tmp_msg[5] = "test";
+ // char tmp_msg[5] = "test";
 
-  printf("Command to be sent to serial port: %s with message: %s\n", cmd, tmp_msg);
+  printf("Command to be sent to serial port: %s with message: %s\n", cmd, sms_msg);
 
   append_quotation_mark(cmd, num_append);
 
-  ret = send_sms_to_modem_with_cmd(modem_fd, cmd, tmp_msg);
+  ret = send_sms_to_modem_with_cmd(modem_fd, cmd, sms_msg);
   if(ret < 0)
   {
      printf("Failed to send command to modem\n");
@@ -331,7 +331,7 @@ static int ublx_at_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
 
   blobmsg_parse(ublx_at_send_sms_policy, __UBLX_SEND_SMS_MAX, tb, blob_data(msg), blob_len(msg));
 
-  if (!tb[UBLX_SEND_SMS_NUM] || !tb[UBLX_SEND_SMS_MSG])
+  if (!tb[UBLX_SEND_SMS_CMD] || !tb[UBLX_SEND_SMS_MSG])
     return UBUS_STATUS_INVALID_ARGUMENT;
 
   hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
@@ -339,7 +339,7 @@ static int ublx_at_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
   memset(hreq, 0, hreq_size);
   memset(msgstr, 0, CMD_MSG_LEN);
 
-  if(ublx_at_send_sms_do(msgstr, blobmsg_data(tb[UBLX_SEND_SMS_NUM]), tb[UBLX_SEND_SMS_MSG]) == FALSE)
+  if(ublx_at_send_sms_do(msgstr, blobmsg_data(tb[UBLX_SEND_SMS_CMD]), blobmsg_data(tb[UBLX_SEND_SMS_MSG])) == FALSE)
   {
     printf("ublx at send sms failed.\n");
   }

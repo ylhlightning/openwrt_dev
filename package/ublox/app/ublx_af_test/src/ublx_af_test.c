@@ -44,7 +44,6 @@ typedef struct ublx_api
 
 static struct blob_buf b;
 static int is_async_call = 0;
-static char *msg = "test";
 static char *pin = "9754";
 static char *num = "3920635677";
 static char *ubus_object = "ublxaf";
@@ -122,7 +121,6 @@ void add_method_parameter(char *ubus_method)
   if(!strcmp(ubus_method, "send_sms"))
   {
     blobmsg_add_string(&b, "number", num);
-    blobmsg_add_string(&b, "message", msg);
   }
 }
 

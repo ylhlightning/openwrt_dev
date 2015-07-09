@@ -45,11 +45,13 @@ static char client_reply_msg[1024];
 char cmd_name_cfun_enable[CMD_LEN]      = "at+cfun=1";
 char cmd_name_cfun_disable[CMD_LEN]     = "at+cfun=0";
 char cmd_name_cpin_query[CMD_LEN]       = "at+cpin=?";
-char cmd_name_cgdcont_query[CMD_LEN]   = "at+cgdcont?";
+char cmd_name_cgdcont_query[CMD_LEN]    = "at+cgdcont?";
 char cmd_name_context_active[CMD_LEN]   = "at!scact=1,1";
 char cmd_name_context_deactive[CMD_LEN] = "at!scact=0,1";
 char cmd_name_get_public_addr[CMD_LEN]  = "at!scpaddr=1";
 char cmd_name_set_sms[CMD_LEN]          = "at+cmgf=1";
+char cmd_name_get_cimi[CMD_LEN]         = "at+cimi";
+
 
 /***************************************************************/
 /*Ubus object policy configuration*/
@@ -64,13 +66,11 @@ static const struct blobmsg_policy ublx_af_unlock_sim_policy[__UBLX_UNLOCK_SIM_M
 
 enum {
   UBLX_SEND_SMS_NUM,
-  UBLX_SEND_SMS_MSG,
   __UBLX_SEND_SMS_MAX,
 };
 
 static const struct blobmsg_policy ublx_af_send_sms_policy[__UBLX_SEND_SMS_MAX] = {
   [UBLX_SEND_SMS_NUM] = { .name = "number", .type = BLOBMSG_TYPE_STRING },
-  [UBLX_SEND_SMS_MSG] = { .name = "message", .type = BLOBMSG_TYPE_STRING },
 };
 
 
@@ -94,6 +94,27 @@ struct ubus_object ublxaf_object = {
   .methods = ublx_af_methods,
   .n_methods = ARRAY_SIZE(ublx_af_methods),
 };
+
+char *get_cimi_num(char *str)
+{
+  int len = strlen(str);
+  int i,j= 0;
+  int ret_str_len = 128;
+  char *ret_str = (char *)malloc(ret_str_len*sizeof(char)); 
+  printf("start to process string:%s\n", str);
+  
+  for(i = 0; i < len; i++)
+  {
+    if(*str >= 48 && *str <= 57)
+    {
+      ret_str[j] = *str;
+      j++;
+    }
+    str ++;
+  }
+  ret_str[j] = '\0';
+  return ret_str;
+}
 
 
 /***************************************************************/
@@ -177,7 +198,7 @@ static int client_ubus_process(char *ubus_object, char *ubus_method, char *argv)
   return ret;
 }
 
-static int client_ubus_process_with_msg(char *ubus_object, char *ubus_method, char *argv, char *msg)
+static int client_ubus_process_with_message(char *ubus_object, char *ubus_method, char *argv, char *sms_msg)
 {
   static struct ubus_request req;
   uint32_t id;
@@ -198,9 +219,15 @@ static int client_ubus_process_with_msg(char *ubus_object, char *ubus_method, ch
 
   blob_buf_init(&b_local, 0);
 
-  blobmsg_add_string(&b_local, "cmd", argv);
+  if(argv != NULL)
+  {
+    blobmsg_add_string(&b_local, "cmd", argv);
+  }
 
-  blobmsg_add_string(&b_local, "message", msg);
+  if(sms_msg != NULL)
+  {
+    blobmsg_add_string(&b_local, "message", sms_msg);
+  }
 
   ret_ubus_invoke = ubus_invoke(ctx_local, id, ubus_method, b_local.head, receive_call_result_data, 0, 3000);
 
@@ -569,11 +596,10 @@ static int ublx_af_net_home(struct ubus_context *ctx, struct ubus_object *obj,
 
 /* send sms */
 
-static int ublx_af_send_sms_do(char *recv_msg, char *num, char *sms_msg)
+static int ublx_af_send_sms_do(char *recv_msg, char *num)
 {
   int ublx_af_send_sms_result;
   char num_append[20];
-  char msg[CMD_MSG_MAX_LEN];
   char client_msg[CMD_MSG_MAX_LEN] = "Unlock sim card:";
   int ret;
   char *ubus_object = "ublxat";
@@ -595,11 +621,9 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num, char *sms_msg)
     goto send_sms_error;
   }
 
-  snprintf(cmd_name, strlen(cmd_name_send_sms)+strlen(num)+3, "%s\"%s\"", cmd_name_send_sms, num);
+  printf("2. Sending command : %s\n", cmd_name_get_cimi);
 
-  printf("2. Sending command : %s with msg: %s\n", cmd_name, sms_msg);
-
-  if(client_ubus_process_with_msg(ubus_object, ubus_method_sms, cmd_name, sms_msg) == TRUE)
+  if(client_ubus_process(ubus_object, ubus_method_cmd, cmd_name_get_cimi) == TRUE)
   {
     ublx_af_send_sms_result = TRUE;
   }
@@ -608,11 +632,30 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num, char *sms_msg)
     goto send_sms_error;
   }
 
+  snprintf(cmd_name, strlen(cmd_name_send_sms)+strlen(num)+3, "%s\"%s\"", cmd_name_send_sms, num);
+
+  char *cimi_num = get_cimi_num(client_reply_msg);
+
+  printf("3. Sending command : %s with message: %s\n", cmd_name, cimi_num);
+
+  if(client_ubus_process_with_message(ubus_object, ubus_method_sms, cmd_name, cimi_num) == TRUE)
+  {
+    ublx_af_send_sms_result = TRUE;
+  }
+  else
+  {
+    free(cimi_num);
+    cimi_num = NULL;
+    goto send_sms_error;
+  }
+
   if(ublx_af_send_sms_result == TRUE)
   {
     printf("Send sms successful.\n");
     strncat(client_msg, MSG_OK, strlen(MSG_OK));
     strncpy(recv_msg, client_msg, strlen(client_msg));
+    free(cimi_num);
+    cimi_num = NULL;
     return TRUE;
   }
 
@@ -673,7 +716,7 @@ static int ublx_af_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
 
   blobmsg_parse(ublx_af_send_sms_policy, __UBLX_SEND_SMS_MAX, tb, blob_data(msg), blob_len(msg));
 
-  if (!tb[UBLX_SEND_SMS_NUM] || !tb[UBLX_SEND_SMS_MSG])
+  if (!tb[UBLX_SEND_SMS_NUM])
     return UBUS_STATUS_INVALID_ARGUMENT;
 
   hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
@@ -681,7 +724,7 @@ static int ublx_af_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
   memset(hreq, 0, hreq_size);
   memset(msgstr, 0, CMD_MSG_LEN);
 
-  if(ublx_af_send_sms_do(msgstr, blobmsg_data(tb[UBLX_SEND_SMS_NUM]), blobmsg_data(tb[UBLX_SEND_SMS_MSG])) == FALSE)
+  if(ublx_af_send_sms_do(msgstr, blobmsg_data(tb[UBLX_SEND_SMS_NUM])) == FALSE)
   {
     printf("ublx send sms failed.\n");
   }

@@ -81,7 +81,7 @@ static int ublx_af_net_home(struct ubus_context *ctx, struct ubus_object *obj,
           struct blob_attr *msg);
 
 
-static int ublx_af_send_sms_do(char *recv_msg, char *num, char *sms_msg);
+static int ublx_af_send_sms_do(char *recv_msg, char *num);
 
 static void ublx_send_sms_fd_reply(struct uloop_timeout *t);
 
