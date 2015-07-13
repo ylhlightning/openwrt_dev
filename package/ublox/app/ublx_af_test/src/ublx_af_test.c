@@ -59,7 +59,7 @@ static int ublx_send_sms(uint32_t id, char *ubus_method, int is_async_call);
 ublx_api_t ublx_api_table[] = {
   {"unlock_sim", ublx_unlock_sim},
   {"net_list", ublx_net_list},
-  {"home_list", ublx_net_home},
+  {"net_home", ublx_net_home},
   {"send_sms", ublx_send_sms}
 };
 

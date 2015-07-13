@@ -51,6 +51,7 @@ char cmd_name_context_deactive[CMD_LEN] = "at!scact=0,1";
 char cmd_name_get_public_addr[CMD_LEN]  = "at!scpaddr=1";
 char cmd_name_set_sms[CMD_LEN]          = "at+cmgf=1";
 char cmd_name_get_cimi[CMD_LEN]         = "at+cimi";
+char cmd_name_list_operator[CMD_LEN]    = "at+cops?";
 
 
 /***************************************************************/
@@ -254,6 +255,7 @@ static int client_ubus_process_with_message(char *ubus_object, char *ubus_method
 static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
 {
   int cmd_unlock_sim_result = FALSE;
+  int cmd_radio_active = TRUE;
   char num_append[20];
   char msg[CMD_MSG_MAX_LEN];
   char client_msg[CMD_MSG_MAX_LEN] = "Unlock sim card:";
@@ -268,23 +270,16 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
 
   if(client_ubus_process(ubus_object, ubus_method, cmd_name_cfun_enable) == TRUE)
   {
-    cmd_unlock_sim_result = TRUE;
+    cmd_radio_active = TRUE;
   }
   else
   {
-    goto unlock_sim_error;
+    cmd_radio_active = FALSE;
   }
 
   printf("2. Sending command : %s\n", strncat(cmd_name_cpin_insert, pin, strlen(pin)));
 
-  if(client_ubus_process(ubus_object, ubus_method, strncat(cmd_name_cpin_insert, pin, strlen(pin))) == TRUE)
-  {
-    cmd_unlock_sim_result = TRUE;
-  }
-  else
-  {
-    goto unlock_sim_error;
-  }
+  client_ubus_process(ubus_object, ubus_method, strncat(cmd_name_cpin_insert, pin, strlen(pin)));
 
   printf("3. Sending command : %s\n", cmd_name_cpin_query);
 
@@ -293,19 +288,21 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
       cmd_unlock_sim_result = TRUE;
   }
 
-  if(cmd_unlock_sim_result == TRUE)
+  if(cmd_radio_active == TRUE && cmd_unlock_sim_result == TRUE)
   {
-    printf("Unlock pin successful.\n");
-    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    printf("unlock sim card successful.\n");
+    strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
+  else
+  {
+    printf("List cellular network failed.\n");
+    strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
+    return FALSE;
+  }
 
-unlock_sim_error:
-  printf("Unlock pin failed.\n");
-  strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
-  strncpy(recv_msg, client_msg, strlen(client_msg));
-  return FALSE;
 }
 
 static void ublx_unlock_sim_fd_reply(struct uloop_timeout *t)
@@ -340,7 +337,6 @@ static void ublx_unlock_sim_reply(struct uloop_timeout *t)
   ubus_request_set_fd(ctx, &req->req, fds[0]);
   ubus_complete_deferred_request(ctx, &req->req, 0);
   req->fd = fds[1];
-
   req->timeout.cb = ublx_unlock_sim_fd_reply;
   ublx_unlock_sim_fd_reply(t);
 }
@@ -397,9 +393,9 @@ static int ublx_af_net_list_do(char *recv_msg)
 
   printf("Start to list cellular network.\n");
 
-  printf("1. Sending command : %s\n", cmd_name_cgdcont_query);
+  printf("1. Sending command : %s\n", cmd_name_list_operator);
 
-  if(client_ubus_process(ubus_object, ubus_method, cmd_name_cgdcont_query) == TRUE)
+  if(client_ubus_process(ubus_object, ubus_method, cmd_name_list_operator) == TRUE)
   {
     ublx_af_net_list_result = TRUE;
   }
@@ -608,7 +604,7 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
   char cmd_name_send_sms[CMD_LEN] = "at+cmgs=";
   char cmd_name[CMD_LEN];
 
-  printf("Start to unlock sim card.\n");
+  printf("Start to send sms message to number: %s.\n", num);
 
   printf("1. Sending command : %s\n", cmd_name_set_sms);
 
@@ -652,7 +648,7 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
   if(ublx_af_send_sms_result == TRUE)
   {
     printf("Send sms successful.\n");
-    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     free(cimi_num);
     cimi_num = NULL;
