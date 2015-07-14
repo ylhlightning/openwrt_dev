@@ -83,6 +83,10 @@ void ublx_add_object_at(void)
   if (ret){
     printf("Failed to add object %s: %s\n", ublxat_object.name, ubus_strerror(ret));
   }
+  else
+  {
+    printf("Register object %s in ubusd.\n", ublxat_object.name);
+  }
 }
 
 /***************************************************************/
@@ -96,7 +100,7 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
   char client_msg[CMD_MSG_MAX_LEN] = "Send cmd:";
   int ret;
 
-  printf("Command to be sent to serial port: %s\n", cmd);
+  printf("\n\n\n*************Command to be sent to serial port: %s***************************\n", cmd);
 
   append_quotation_mark(cmd, num_append);
 
@@ -138,7 +142,6 @@ static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
   const char *format = "%s received a message: %s";
   char data[CMD_MSG_LEN];
   char *msgstr = data;
-  int hreq_size;
 
   int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
 
@@ -176,6 +179,9 @@ static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
 
   ubus_complete_deferred_request(ctx, hreq, 0);
 
+  free(hreq);
+  hreq = NULL;
+
   return 0;
 }
 
@@ -212,7 +218,7 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
   char client_msg[CMD_MSG_MAX_LEN] = "Send message via sms:";
   int ret;
 
-  printf("Command to be sent to serial port: %s with message: %s\n", cmd, sms_msg);
+  printf("\n\n\n*************Command to be sent to serial port: %s with message: %s***************************\n", cmd, sms_msg);
 
   append_quotation_mark(cmd, num_append);
 
@@ -290,6 +296,9 @@ static int ublx_at_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
   ubus_send_reply(ctx, hreq, b.head);
 
   ubus_complete_deferred_request(ctx, hreq, 0);
+
+  free(hreq);
+  hreq = NULL;
 
   return 0;
 }

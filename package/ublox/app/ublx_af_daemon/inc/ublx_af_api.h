@@ -36,6 +36,8 @@
 #include "libubus.h"
 #include "ublx_af_common.h"
 
+#define UBLX_AF_INVOKE_TIMEOUT 120000
+
 extern struct ubus_context *ctx;
 
 void ublx_add_object_af(void);

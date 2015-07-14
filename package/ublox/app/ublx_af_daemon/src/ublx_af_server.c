@@ -38,6 +38,8 @@ static void server_main(void)
 
   ublx_add_object_af();
 
+  printf("AF process run in loop and wait for ubus communcation.....\n\n\n");
+
   uloop_run();
 }
 
@@ -67,6 +69,8 @@ int main(int argc, char **argv)
     fprintf(stderr, "Failed to connect to ubus\n");
     return -1;
   }
+
+  printf("Start to run ublx process AF.\n");
 
   ubus_add_uloop(ctx);
 

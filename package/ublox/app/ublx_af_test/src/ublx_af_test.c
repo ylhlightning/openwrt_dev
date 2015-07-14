@@ -34,6 +34,8 @@
 #include <libubox/blobmsg_json.h>
 #include "libubus.h"
 
+#define UBLX_AF_INVOKE_TIMEOUT 120000
+
 typedef int (*ublx_api_func)(uint32_t, char *, int);
 
 typedef struct ublx_api
@@ -47,6 +49,7 @@ static int is_async_call = 0;
 static char *pin = "9754";
 static char *num = "3920635677";
 static char *ubus_object = "ublxaf";
+static int ublx_test_timeout = 0;
 
 static int ublx_unlock_sim(uint32_t id, char *ubus_method, int is_async_call);
 
@@ -90,7 +93,6 @@ static struct ubus_context *ubus_init(uint32_t *id, char *ubus_object, int is_as
   }
 
   return ctx;
-
 }
 
 static void test_client_complete_cb(struct ubus_request *req, int ret)
@@ -111,7 +113,7 @@ static void receive_call_result(struct ubus_request *req, int type, struct blob_
   free(str);
 }
 
-void add_method_parameter(char *ubus_method)
+static void add_method_parameter(char *ubus_method)
 {
   if(!strcmp(ubus_method, "unlock_sim"))
   {
@@ -124,9 +126,9 @@ void add_method_parameter(char *ubus_method)
   }
 }
 
-void ubus_sync_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
+static void ubus_sync_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
 {
-  printf("Synchronized method call: id: %d, method: %s.\n", id, ubus_method);
+  printf("Synchronized method call.\n", id, ubus_method);
 
   /* init message buffer */
   blob_buf_init(&b, 0);
@@ -134,10 +136,10 @@ void ubus_sync_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
   add_method_parameter(ubus_method);
 
   /* invoke a ubus call */
-  ubus_invoke(ctx, id, ubus_method, b.head, receive_call_result, 0, 3000);
+  ubus_invoke(ctx, id, ubus_method, b.head, receive_call_result, 0, UBLX_AF_INVOKE_TIMEOUT);
 }
 
-void ubus_async_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
+static void ubus_async_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
 {
   printf("Asynchronized method call.\n");
 
@@ -161,7 +163,7 @@ void ubus_async_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
 
 static int ublx_unlock_sim(uint32_t id, char *ubus_method, int is_async_call)
 {
-  printf("start to call %s api function, id:%d, method:%s.\n", __FUNCTION__, id, ubus_method);
+  printf("\n\n\n*****************start to call %s api function.********************\n", __FUNCTION__);
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
 
@@ -182,7 +184,7 @@ static int ublx_unlock_sim(uint32_t id, char *ubus_method, int is_async_call)
 
 static int ublx_net_list(uint32_t id, char *ubus_method, int is_async_call)
 {
-  printf("start to call %s api function.\n", __FUNCTION__);
+  printf("\n\n\n*****************start to call %s api function.********************\n", __FUNCTION__);
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
 
@@ -204,7 +206,7 @@ static int ublx_net_list(uint32_t id, char *ubus_method, int is_async_call)
 
 static int ublx_net_home(uint32_t id, char *ubus_method, int is_async_call)
 {
-  printf("start to call %s api function.\n", __FUNCTION__);
+  printf("\n\n\n*****************start to call %s api function.********************\n", __FUNCTION__);
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
 
@@ -226,7 +228,7 @@ static int ublx_net_home(uint32_t id, char *ubus_method, int is_async_call)
 
 static int ublx_send_sms(uint32_t id, char *ubus_method, int is_async_call)
 {
-  printf("start to call %s api function.\n", __FUNCTION__);
+  printf("\n\n\n*****************start to call %s api function.********************\n", __FUNCTION__);
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
 
@@ -256,18 +258,24 @@ int main(int argc, char *argv[])
   int i;
   char *name;
 
-  while ((ch = getopt(argc, argv, "a")) != -1) {
+  while ((ch = getopt(argc, argv, "at:")) != -1) {
     switch (ch) {
     case 'a':
       is_async_call = 1;
       break;
+    case 't':
+      ublx_test_timeout = atoi(optarg); 
     default:
       break;
     }
   }
 
+  if(ublx_test_timeout)
+  {
+    ublx_test_timeout = UBLX_AF_INVOKE_TIMEOUT;
+  }
+  
   ublx_api_t *ublx_api_table_ptr = ublx_api_table;
-
 
   for(i = 0; i < api_num; i++)
   {

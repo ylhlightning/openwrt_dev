@@ -68,11 +68,12 @@ static int client_ubus_process(char *ubus_object, char *ubus_method, char *argv)
     printf("Failed to look up test object\n");
     return -1;
   }
+
   blob_buf_init(&b_local, 0);
 
   blobmsg_add_string(&b_local, "cmd", argv);
 
-  ret_ubus_invoke = ubus_invoke(ctx_local, id, ubus_method, b_local.head, receive_call_result_data, 0, 3000);
+  ret_ubus_invoke = ubus_invoke(ctx_local, id, ubus_method, b_local.head, receive_call_result_data, 0, 20000);
  
   if(ret_ubus_invoke == 0 || ret_ubus_invoke == 7)
   {
