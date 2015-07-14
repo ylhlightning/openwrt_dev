@@ -29,14 +29,6 @@
 
 #include "ublx_at_api.h"
 
-struct ublx_at_request {
-  struct ubus_request_data req;
-  struct uloop_timeout timeout;
-  int fd;
-  int idx;
-  char data[CMD_MSG_LEN];
-};
-
 static struct blob_buf b;
 
 /***************************************************************/
@@ -138,74 +130,51 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
   }
 }
 
-static void ublx_send_cmd_fd_reply(struct uloop_timeout *t)
-{
-  struct ublx_at_request *req = container_of(t, struct ublx_at_request, timeout);
-  char *data;
-
-  data = alloca(strlen(req->data) + 32);
-  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
-  if (write(req->fd, data, strlen(data)) < 0) {
-    close(req->fd);
-    free(req);
-    return;
-  }
-
-  uloop_timeout_set(&req->timeout, 1000);
-}
-
-static void ublx_send_cmd_reply(struct uloop_timeout *t)
-{
-  struct ublx_at_request *req = container_of(t, struct ublx_at_request, timeout);
-  int fds[2];
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_string(&b, "message", req->data);
-  ubus_send_reply(ctx, &req->req, b.head);
-
-  if (pipe(fds) == -1) {
-    fprintf(stderr, "Failed to create pipe\n");
-    return;
-  }
-  ubus_request_set_fd(ctx, &req->req, fds[0]);
-  ubus_complete_deferred_request(ctx, &req->req, 0);
-  req->fd = fds[1];
-
-  req->timeout.cb = ublx_send_cmd_fd_reply;
-  ublx_send_cmd_fd_reply(t);
-}
-
 static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg)
 {
-  struct ublx_at_request *hreq;
   struct blob_attr *tb[__UBLX_SEND_SMS_MAX];
   const char *format = "%s received a message: %s";
   char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
 
+  int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
+
+  char reply_msg[reply_msg_len];
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
+
+  memset(hreq, 0, sizeof(struct ubus_request_data));
+
+  memset(reply_msg, '\0', reply_msg_len);
+
+  memset(msgstr, '\0', CMD_MSG_LEN);
+
   blobmsg_parse(ublx_at_send_cmd_policy, __UBLX_SEND_CMD_MAX, tb, blob_data(msg), blob_len(msg));
 
   if (!tb[UBLX_SEND_CMD_STR])
+  {
     return UBUS_STATUS_INVALID_ARGUMENT;
-
-  hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
-  hreq = calloc(1, hreq_size);
-  memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, CMD_MSG_LEN);
+  }
 
   if(ublx_at_send_cmd_do(msgstr, blobmsg_data(tb[UBLX_SEND_CMD_STR])) == FALSE)
   {
     printf("ublx at send cmd failed.\n");
   }
 
-  sprintf(hreq->data, format, obj->name, msgstr);
+  sprintf(reply_msg, format, obj->name, msgstr);
 
-  ubus_defer_request(ctx, req, &hreq->req);
-  hreq->timeout.cb = ublx_send_cmd_reply;
-  uloop_timeout_set(&hreq->timeout, 1000);
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", reply_msg);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
 
   return 0;
 }
@@ -233,10 +202,7 @@ static void append_quotation_mark(char *num, char *str_append)
 
   ptr_append ++;
   *ptr_append = '\0';
-
-  return str_append;
 }
-
 
 static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
 {
@@ -245,7 +211,6 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
   char msg[CMD_MSG_MAX_LEN];
   char client_msg[CMD_MSG_MAX_LEN] = "Send message via sms:";
   int ret;
- // char tmp_msg[5] = "test";
 
   printf("Command to be sent to serial port: %s with message: %s\n", cmd, sms_msg);
 
@@ -281,74 +246,50 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
   }
 }
 
-static void ublx_send_sms_fd_reply(struct uloop_timeout *t)
-{
-  struct ublx_at_request *req = container_of(t, struct ublx_at_request, timeout);
-  char *data;
-
-  data = alloca(strlen(req->data) + 32);
-  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
-  if (write(req->fd, data, strlen(data)) < 0) {
-    close(req->fd);
-    free(req);
-    return;
-  }
-
-  uloop_timeout_set(&req->timeout, 1000);
-}
-
-static void ublx_send_sms_reply(struct uloop_timeout *t)
-{
-  struct ublx_at_request *req = container_of(t, struct ublx_at_request, timeout);
-  int fds[2];
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_string(&b, "message", req->data);
-  ubus_send_reply(ctx, &req->req, b.head);
-
-  if (pipe(fds) == -1) {
-    fprintf(stderr, "Failed to create pipe\n");
-    return;
-  }
-  ubus_request_set_fd(ctx, &req->req, fds[0]);
-  ubus_complete_deferred_request(ctx, &req->req, 0);
-  req->fd = fds[1];
-
-  req->timeout.cb = ublx_send_sms_fd_reply;
-  ublx_send_sms_fd_reply(t);
-}
-
 static int ublx_at_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg)
 {
-  struct ublx_at_request *hreq;
   struct blob_attr *tb[__UBLX_SEND_SMS_MAX];
   const char *format = "%s received a message: %s";
   char data[CMD_MSG_LEN];
   char *msgstr = data;
-  int hreq_size;
+
+  int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
+
+  char reply_msg[reply_msg_len];
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
+
+  memset(hreq, 0, sizeof(struct ubus_request_data));
+
+  memset(reply_msg, '\0', reply_msg_len);
+
+  memset(msgstr, '\0', CMD_MSG_LEN);
 
   blobmsg_parse(ublx_at_send_sms_policy, __UBLX_SEND_SMS_MAX, tb, blob_data(msg), blob_len(msg));
 
   if (!tb[UBLX_SEND_SMS_CMD] || !tb[UBLX_SEND_SMS_MSG])
+  {
     return UBUS_STATUS_INVALID_ARGUMENT;
-
-  hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
-  hreq = calloc(1, hreq_size);
-  memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, CMD_MSG_LEN);
+  }
 
   if(ublx_at_send_sms_do(msgstr, blobmsg_data(tb[UBLX_SEND_SMS_CMD]), blobmsg_data(tb[UBLX_SEND_SMS_MSG])) == FALSE)
   {
     printf("ublx at send sms failed.\n");
   }
 
-  sprintf(hreq->data, format, obj->name, msgstr);
+  sprintf(reply_msg, format, obj->name, msgstr);
 
-  ubus_defer_request(ctx, req, &hreq->req);
-  hreq->timeout.cb = ublx_send_sms_reply;
-  uloop_timeout_set(&hreq->timeout, 1000);
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", reply_msg);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
 
   return 0;
 }

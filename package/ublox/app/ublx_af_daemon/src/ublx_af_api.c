@@ -29,14 +29,6 @@
 
 #include "ublx_af_api.h"
 
-struct ublx_af_request {
-  struct ubus_request_data req;
-  struct uloop_timeout timeout;
-  int fd;
-  int idx;
-  char data[CMD_MSG_LEN];
-};
-
 static struct blob_buf b;
 static struct blob_buf b_local;
 
@@ -129,15 +121,6 @@ void ublx_add_object_af(void)
     printf("Failed to add object %s: %s\n", ublxaf_object.name, ubus_strerror(ret));
   }
 }
-
-static void test_client_subscribe_cb(struct ubus_context *ctx, struct ubus_object *obj)
-{
-  printf("Subscribers active: %d\n", obj->has_subscribers);
-}
-
-static struct ubus_object test_client_object = {
-  .subscribe_cb = test_client_subscribe_cb,
-};
 
 
 static void receive_call_result_data(struct ubus_request *req, int type, struct blob_attr *msg)
@@ -305,73 +288,50 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
 
 }
 
-static void ublx_unlock_sim_fd_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  char *data;
-
-  data = alloca(strlen(req->data) + 32);
-  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
-  if (write(req->fd, data, strlen(data)) < 0) {
-    close(req->fd);
-    free(req);
-    return;
-  }
-
-  uloop_timeout_set(&req->timeout, 1000);
-}
-
-static void ublx_unlock_sim_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  int fds[2];
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_string(&b, "message", req->data);
-  ubus_send_reply(ctx, &req->req, b.head);
-
-  if (pipe(fds) == -1) {
-    fprintf(stderr, "Failed to create pipe\n");
-    return;
-  }
-  ubus_request_set_fd(ctx, &req->req, fds[0]);
-  ubus_complete_deferred_request(ctx, &req->req, 0);
-  req->fd = fds[1];
-  req->timeout.cb = ublx_unlock_sim_fd_reply;
-  ublx_unlock_sim_fd_reply(t);
-}
-
 static int ublx_unlock_sim(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg)
 {
-  struct ublx_af_request *hreq;
   struct blob_attr *tb[__UBLX_UNLOCK_SIM_MAX];
   const char *format = "%s received a message: %s";
   char data[CMD_MSG_LEN];
   char *msgstr = data;
-  int hreq_size;
+
+  int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
+
+  char reply_msg[reply_msg_len];
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
+
+  memset(hreq, 0, sizeof(struct ubus_request_data));
+
+  memset(reply_msg, '\0', reply_msg_len);
+
+  memset(msgstr, '\0', CMD_MSG_LEN);
 
   blobmsg_parse(ublx_af_unlock_sim_policy, __UBLX_UNLOCK_SIM_MAX, tb, blob_data(msg), blob_len(msg));
 
   if (!tb[UBLX_UNLOCK_SIM])
+  {
     return UBUS_STATUS_INVALID_ARGUMENT;
-
-  hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
-  hreq = calloc(1, hreq_size);
-  memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, CMD_MSG_LEN);
+  }
 
   if(ublx_af_unlock_sim_do(msgstr, blobmsg_data(tb[UBLX_UNLOCK_SIM])) == FALSE)
   {
     printf("ublx unblock sim failed.\n");
   }
 
-  sprintf(hreq->data, format, obj->name, msgstr);
+  sprintf(reply_msg, format, obj->name, msgstr);
 
-  ubus_defer_request(ctx, req, &hreq->req);
-  hreq->timeout.cb = ublx_unlock_sim_reply;
-  uloop_timeout_set(&hreq->timeout, 1000);
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", reply_msg);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
 
   return 0;
 }
@@ -416,67 +376,43 @@ static int ublx_af_net_list_do(char *recv_msg)
   }
 }
 
-static void ublx_af_net_list_fd_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  char *data;
-
-  data = alloca(strlen(req->data) + 32);
-  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
-  if (write(req->fd, data, strlen(data)) < 0) {
-    close(req->fd);
-    free(req);
-    return;
-  }
-
-  uloop_timeout_set(&req->timeout, 1000);
-}
-
-static void ublx_af_net_list_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  int fds[2];
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_string(&b, "message", req->data);
-  ubus_send_reply(ctx, &req->req, b.head);
-
-  if (pipe(fds) == -1) {
-    fprintf(stderr, "Failed to create pipe\n");
-    return;
-  }
-  ubus_request_set_fd(ctx, &req->req, fds[0]);
-  ubus_complete_deferred_request(ctx, &req->req, 0);
-  req->fd = fds[1];
-
-  req->timeout.cb = ublx_af_net_list_fd_reply;
-  ublx_af_net_list_fd_reply(t);
-}
-
 static int ublx_af_net_list(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg)
 {
-  struct ublx_af_request *hreq;
   const char *format = "%s received a message: %s";
   char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
 
-  hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
-  hreq = calloc(1, hreq_size);
-  memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, CMD_MSG_LEN);
+  int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
+
+  char reply_msg[reply_msg_len];
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
+
+  memset(hreq, 0, sizeof(struct ubus_request_data));
+
+  memset(reply_msg, '\0', reply_msg_len);
+
+  memset(msgstr, '\0', CMD_MSG_LEN);
 
   if(ublx_af_net_list_do(msgstr) == FALSE)
   {
     printf("ublx_af_net_list failed.\n");
   }
 
-  sprintf(hreq->data, format, obj->name, msgstr);
-  ubus_defer_request(ctx, req, &hreq->req);
-  hreq->timeout.cb = ublx_af_net_list_reply;
-  uloop_timeout_set(&hreq->timeout, 1000);
+  sprintf(reply_msg, format, obj->name, msgstr);
+
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", reply_msg);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
 
   return 0;
 }
@@ -521,67 +457,43 @@ static int ublx_af_net_home_do(char *recv_msg)
   }
 }
 
-static void ublx_af_net_home_fd_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  char *data;
-
-  data = alloca(strlen(req->data) + 32);
-  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
-  if (write(req->fd, data, strlen(data)) < 0) {
-    close(req->fd);
-    free(req);
-    return;
-  }
-
-  uloop_timeout_set(&req->timeout, 1000);
-}
-
-static void ublx_af_net_home_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  int fds[2];
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_string(&b, "message", req->data);
-  ubus_send_reply(ctx, &req->req, b.head);
-
-  if (pipe(fds) == -1) {
-    fprintf(stderr, "Failed to create pipe\n");
-    return;
-  }
-  ubus_request_set_fd(ctx, &req->req, fds[0]);
-  ubus_complete_deferred_request(ctx, &req->req, 0);
-  req->fd = fds[1];
-
-  req->timeout.cb = ublx_af_net_home_fd_reply;
-  ublx_af_net_home_fd_reply(t);
-}
-
 static int ublx_af_net_home(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg)
 {
-  struct ublx_af_request *hreq;
   const char *format = "%s received a message: %s";
   char data[CMD_MSG_LEN];
   char *msgstr = data;
   int hreq_size;
 
-  hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
-  hreq = calloc(1, hreq_size);
-  memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, CMD_MSG_LEN);
+  int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
+
+  char reply_msg[reply_msg_len];
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
+
+  memset(hreq, 0, sizeof(struct ubus_request_data));
+
+  memset(reply_msg, '\0', reply_msg_len);
+
+  memset(msgstr, '\0', CMD_MSG_LEN);
 
   if(ublx_af_net_home_do(msgstr) == FALSE)
   {
     printf("ublx_af_net_list failed.\n");
   }
 
-  sprintf(hreq->data, format, obj->name, msgstr);
-  ubus_defer_request(ctx, req, &hreq->req);
-  hreq->timeout.cb = ublx_af_net_home_reply;
-  uloop_timeout_set(&hreq->timeout, 1000);
+  sprintf(reply_msg, format, obj->name, msgstr);
+
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", reply_msg);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
 
   return 0;
 }
@@ -596,7 +508,7 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
 {
   int ublx_af_send_sms_result;
   char num_append[20];
-  char client_msg[CMD_MSG_MAX_LEN] = "Unlock sim card:";
+  char client_msg[CMD_MSG_MAX_LEN] = "Send message via sms:";
   int ret;
   char *ubus_object = "ublxat";
   char *ubus_method_cmd = "at_send_cmd";
@@ -662,74 +574,51 @@ send_sms_error:
   return FALSE;
 }
 
-static void ublx_send_sms_fd_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  char *data;
-
-  data = alloca(strlen(req->data) + 32);
-  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
-  if (write(req->fd, data, strlen(data)) < 0) {
-    close(req->fd);
-    free(req);
-    return;
-  }
-
-  uloop_timeout_set(&req->timeout, 1000);
-}
-
-static void ublx_af_send_sms_reply(struct uloop_timeout *t)
-{
-  struct ublx_af_request *req = container_of(t, struct ublx_af_request, timeout);
-  int fds[2];
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_string(&b, "message", req->data);
-  ubus_send_reply(ctx, &req->req, b.head);
-
-  if (pipe(fds) == -1) {
-    fprintf(stderr, "Failed to create pipe\n");
-    return;
-  }
-  ubus_request_set_fd(ctx, &req->req, fds[0]);
-  ubus_complete_deferred_request(ctx, &req->req, 0);
-  req->fd = fds[1];
-
-  req->timeout.cb = ublx_send_sms_fd_reply;
-  ublx_send_sms_fd_reply(t);
-}
 
 static int ublx_af_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg)
 {
-  struct ublx_af_request *hreq;
   struct blob_attr *tb[__UBLX_UNLOCK_SIM_MAX];
   const char *format = "%s received a message: %s";
   char data[CMD_MSG_LEN];
   char *msgstr = data;
-  int hreq_size;
+
+  int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
+
+  char reply_msg[reply_msg_len];
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
+
+  memset(hreq, 0, sizeof(struct ubus_request_data));
+
+  memset(reply_msg, '\0', reply_msg_len);
+
+  memset(msgstr, '\0', CMD_MSG_LEN);
 
   blobmsg_parse(ublx_af_send_sms_policy, __UBLX_SEND_SMS_MAX, tb, blob_data(msg), blob_len(msg));
 
   if (!tb[UBLX_SEND_SMS_NUM])
+  {
     return UBUS_STATUS_INVALID_ARGUMENT;
-
-  hreq_size = sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1;
-  hreq = calloc(1, hreq_size);
-  memset(hreq, 0, hreq_size);
-  memset(msgstr, 0, CMD_MSG_LEN);
+  }
 
   if(ublx_af_send_sms_do(msgstr, blobmsg_data(tb[UBLX_SEND_SMS_NUM])) == FALSE)
   {
     printf("ublx send sms failed.\n");
   }
 
-  sprintf(hreq->data, format, obj->name, msgstr);
+  sprintf(reply_msg, format, obj->name, msgstr);
 
-  ubus_defer_request(ctx, req, &hreq->req);
-  hreq->timeout.cb = ublx_af_send_sms_reply;
-  uloop_timeout_set(&hreq->timeout, 1000);
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", reply_msg);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
 
   return 0;
 }
