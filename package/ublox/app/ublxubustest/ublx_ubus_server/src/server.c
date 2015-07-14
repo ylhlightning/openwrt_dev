@@ -56,62 +56,34 @@ struct hello_request {
   char data[];
 };
 
-static void test_hello_fd_reply(struct uloop_timeout *t)
-{
-  struct hello_request *req = container_of(t, struct hello_request, timeout);
-  char *data;
-
-  data = alloca(strlen(req->data) + 32);
-  sprintf(data, "msg%d: %s\n", ++req->idx, req->data);
-  if (write(req->fd, data, strlen(data)) < 0) {
-    close(req->fd);
-    free(req);
-    return;
-  }
-
-  uloop_timeout_set(&req->timeout, 1000);
-}
-
-static void test_hello_reply(struct uloop_timeout *t)
-{
-  struct hello_request *req = container_of(t, struct hello_request, timeout);
-  int fds[2];
-
-  blob_buf_init(&b, 0);
-  blobmsg_add_string(&b, "message", req->data);
-  ubus_send_reply(ctx, &req->req, b.head);
-
-  if (pipe(fds) == -1) {
-    fprintf(stderr, "Failed to create pipe\n");
-    return;
-  }
-  ubus_request_set_fd(ctx, &req->req, fds[0]);
-  ubus_complete_deferred_request(ctx, &req->req, 0);
-  req->fd = fds[1];
-
-  req->timeout.cb = test_hello_fd_reply;
-  test_hello_fd_reply(t);
-}
 
 static int test_hello(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
           struct blob_attr *msg)
 {
-  struct hello_request *hreq;
   struct blob_attr *tb[__HELLO_MAX];
   const char *format = "%s received a message: %s";
   const char *msgstr = "(hello)";
+  char data[128];
 
   blobmsg_parse(hello_policy, ARRAY_SIZE(hello_policy), tb, blob_data(msg), blob_len(msg));
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
 
   if (tb[HELLO_MSG])
     msgstr = blobmsg_data(tb[HELLO_MSG]);
 
-  hreq = calloc(1, sizeof(*hreq) + strlen(format) + strlen(obj->name) + strlen(msgstr) + 1);
-  sprintf(hreq->data, format, obj->name, msgstr);
-  ubus_defer_request(ctx, req, &hreq->req);
-  hreq->timeout.cb = test_hello_reply;
-  uloop_timeout_set(&hreq->timeout, 1000);
+  sprintf(data, format, obj->name, msgstr);
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", data);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
+
 
   return 0;
 }
