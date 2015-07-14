@@ -43,19 +43,13 @@ enum {
   __HELLO_MAX
 };
 
+/* ubus method parameters table with 2 parameters
+   id (type int) and msg (type string).
+*/
 static const struct blobmsg_policy hello_policy[] = {
   [HELLO_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
   [HELLO_MSG] = { .name = "msg", .type = BLOBMSG_TYPE_STRING },
 };
-
-struct hello_request {
-  struct ubus_request_data req;
-  struct uloop_timeout timeout;
-  int fd;
-  int idx;
-  char data[];
-};
-
 
 static int test_hello(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,
@@ -66,24 +60,29 @@ static int test_hello(struct ubus_context *ctx, struct ubus_object *obj,
   const char *msgstr = "(hello)";
   char data[128];
 
+  /* parsing ubus binary message format. */
   blobmsg_parse(hello_policy, ARRAY_SIZE(hello_policy), tb, blob_data(msg), blob_len(msg));
 
+  /* create a ubus client request structure. */
   struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
 
   if (tb[HELLO_MSG])
     msgstr = blobmsg_data(tb[HELLO_MSG]);
 
   sprintf(data, format, obj->name, msgstr);
+
   ubus_defer_request(ctx, req, hreq);
 
+  /* init a ubus binary message send buffer to be send back to client. */
   blob_buf_init(&b, 0);
 
+  /* add the reply message into buffer. */
   blobmsg_add_string(&b, "message", data);
 
+  /* send ubus reply message */
   ubus_send_reply(ctx, hreq, b.head);
 
   ubus_complete_deferred_request(ctx, hreq, 0);
-
 
   return 0;
 }
@@ -112,12 +111,12 @@ static void server_main(void)
 /* add a new object. */
   ret = ubus_add_object(ctx, &test_object);
   if (ret)
-    fprintf(stderr, "Failed to add object: %s\n", ubus_strerror(ret));
+    printf("Failed to add object: %s\n", ubus_strerror(ret));
 
 /* subscriber the test event. */
   ret = ubus_register_subscriber(ctx, &test_event);
   if (ret)
-    fprintf(stderr, "Failed to add watch handler: %s\n", ubus_strerror(ret));
+    printf("Failed to add watch handler: %s\n", ubus_strerror(ret));
 
 /* run uloop and wait event indication. */
   uloop_run();
@@ -143,12 +142,14 @@ int main(int argc, char **argv)
 
   /* init uloop */
   uloop_init();
+
+  /* mask the SIGPIPE signal */
   signal(SIGPIPE, SIG_IGN);
 
-  /* connect to ubus. */
+  /* connect to ubusd. */
   ctx = ubus_connect(ubus_socket);
   if (!ctx) {
-    fprintf(stderr, "Failed to connect to ubus\n");
+    printf("Failed to connect to ubusd\n");
     return -1;
   }
 
@@ -157,8 +158,11 @@ int main(int argc, char **argv)
 
   server_main();
 
-  ubus_free(ctx);
+  /* finish uloop */
   uloop_done();
+
+  /* free client context structure */
+  ubus_free(ctx);
 
   return 0;
 }
