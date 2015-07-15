@@ -34,16 +34,17 @@ static struct blob_buf b_local;
 
 static char client_reply_msg[1024];
 
-static char cmd_name_cfun_enable[CMD_LEN]      = "at+cfun=1";
-static char cmd_name_cfun_disable[CMD_LEN]     = "at+cfun=0";
-static char cmd_name_cpin_query[CMD_LEN]       = "at+cpin=?";
-static char cmd_name_cgdcont_query[CMD_LEN]    = "at+cgdcont?";
-static char cmd_name_context_active[CMD_LEN]   = "at!scact=1,1";
-static char cmd_name_context_deactive[CMD_LEN] = "at!scact=0,1";
-static char cmd_name_get_public_addr[CMD_LEN]  = "at!scpaddr=1";
-static char cmd_name_set_sms[CMD_LEN]          = "at+cmgf=1";
-static char cmd_name_get_cimi[CMD_LEN]         = "at+cimi";
-static char cmd_name_list_operator[CMD_LEN]    = "at+cops=?";
+static char cmd_name_cfun_enable[CMD_LEN]         = "at+cfun=1";
+static char cmd_name_cfun_disable[CMD_LEN]        = "at+cfun=0";
+static char cmd_name_cpin_query[CMD_LEN]          = "at+cpin=?";
+static char cmd_name_cgdcont_query[CMD_LEN]       = "at+cgdcont?";
+static char cmd_name_context_active[CMD_LEN]      = "at!scact=1,1";
+static char cmd_name_context_deactive[CMD_LEN]    = "at!scact=0,1";
+static char cmd_name_get_public_addr[CMD_LEN]     = "at!scpaddr=1";
+static char cmd_name_set_sms[CMD_LEN]             = "at+cmgf=1";
+static char cmd_name_get_cimi[CMD_LEN]            = "at+cimi";
+static char cmd_name_list_operator[CMD_LEN]       = "at+cops=?";
+static char cmd_name_registered_operator[CMD_LEN] = "at+cops?";
 
 
 /***************************************************************/
@@ -327,13 +328,13 @@ static int ublx_unlock_sim(struct ubus_context *ctx, struct ubus_object *obj,
     printf("ublx unblock sim failed.\n");
   }
 
-  sprintf(reply_msg, format, obj->name, msgstr);
+//  sprintf(reply_msg, format, obj->name, msgstr);
 
   ubus_defer_request(ctx, req, hreq);
 
   blob_buf_init(&b, 0);
 
-  blobmsg_add_string(&b, "message", reply_msg);
+  blobmsg_add_string(&b, "message", client_reply_msg);
 
   ubus_send_reply(ctx, hreq, b.head);
 
@@ -410,13 +411,13 @@ static int ublx_af_net_list(struct ubus_context *ctx, struct ubus_object *obj,
     printf("ublx_af_net_list failed.\n");
   }
 
-  sprintf(reply_msg, format, obj->name, msgstr);
+//  sprintf(reply_msg, format, obj->name, msgstr);
 
   ubus_defer_request(ctx, req, hreq);
 
   blob_buf_init(&b, 0);
 
-  blobmsg_add_string(&b, "message", reply_msg);
+  blobmsg_add_string(&b, "message", client_reply_msg);
 
   ubus_send_reply(ctx, hreq, b.head);
 
@@ -447,7 +448,7 @@ static int ublx_af_net_home_do(char *recv_msg)
 
   printf("1. Sending command : %s\n", cmd_name_get_public_addr);
 
-  if(client_ubus_process(ubus_object, ubus_method, cmd_name_get_public_addr) == TRUE)
+  if(client_ubus_process(ubus_object, ubus_method, cmd_name_registered_operator) == TRUE)
   {
      ublx_af_net_home_result = TRUE;
   }
@@ -493,13 +494,13 @@ static int ublx_af_net_home(struct ubus_context *ctx, struct ubus_object *obj,
     printf("ublx_af_net_list failed.\n");
   }
 
-  sprintf(reply_msg, format, obj->name, msgstr);
+//  sprintf(reply_msg, format, obj->name, msgstr);
 
   ubus_defer_request(ctx, req, hreq);
 
   blob_buf_init(&b, 0);
 
-  blobmsg_add_string(&b, "message", reply_msg);
+  blobmsg_add_string(&b, "message", client_reply_msg);
 
   ubus_send_reply(ctx, hreq, b.head);
 
@@ -541,7 +542,7 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
   {
     goto send_sms_error;
   }
-
+/*
   printf("2. Sending command : %s\n", cmd_name_get_cimi);
 
   if(client_ubus_process(ubus_object, ubus_method_cmd, cmd_name_get_cimi) == TRUE)
@@ -569,14 +570,14 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
     cimi_num = NULL;
     goto send_sms_error;
   }
-
+*/
   if(ublx_af_send_sms_result == TRUE)
   {
     printf("Send sms successful.\n");
     strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
-    free(cimi_num);
-    cimi_num = NULL;
+//    free(cimi_num);
+//    cimi_num = NULL;
     return TRUE;
   }
 
@@ -621,13 +622,13 @@ static int ublx_af_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
     printf("ublx send sms failed.\n");
   }
 
-  sprintf(reply_msg, format, obj->name, msgstr);
+//  sprintf(reply_msg, format, obj->name, msgstr);
 
   ubus_defer_request(ctx, req, hreq);
 
   blob_buf_init(&b, 0);
 
-  blobmsg_add_string(&b, "message", reply_msg);
+  blobmsg_add_string(&b, "message", client_reply_msg);
 
   ubus_send_reply(ctx, hreq, b.head);
 
