@@ -33,10 +33,11 @@ static struct blob_buf b;
 static struct blob_buf b_local;
 
 static char client_reply_msg[1024];
+static char client_cimi_num[CIMI_NUM_LEN];
 
 static char cmd_name_cfun_enable[CMD_LEN]         = "at+cfun=1";
 static char cmd_name_cfun_disable[CMD_LEN]        = "at+cfun=0";
-static char cmd_name_cpin_query[CMD_LEN]          = "at+cpin=?";
+static char cmd_name_cpin_query[CMD_LEN]          = "at+cpin?";
 static char cmd_name_cgdcont_query[CMD_LEN]       = "at+cgdcont?";
 static char cmd_name_context_active[CMD_LEN]      = "at!scact=1,1";
 static char cmd_name_context_deactive[CMD_LEN]    = "at!scact=0,1";
@@ -45,6 +46,7 @@ static char cmd_name_set_sms[CMD_LEN]             = "at+cmgf=1";
 static char cmd_name_get_cimi[CMD_LEN]            = "at+cimi";
 static char cmd_name_list_operator[CMD_LEN]       = "at+cops=?";
 static char cmd_name_registered_operator[CMD_LEN] = "at+cops?";
+static char cmd_name_check_registered[CMD_LEN]    = "at+creg?";
 
 
 /***************************************************************/
@@ -93,9 +95,9 @@ char *get_cimi_num(char *str)
 {
   int len = strlen(str);
   int i,j= 0;
-  int ret_str_len = 128;
+  int ret_str_len = CIMI_NUM_LEN;
   char *ret_str = (char *)malloc(ret_str_len*sizeof(char)); 
-  printf("start to process string:%s\n", str);
+//  printf("start to process string:%s\n", str);
   
   for(i = 0; i < len; i++)
   {
@@ -195,6 +197,12 @@ static int client_ubus_process_with_message(char *ubus_object, char *ubus_method
   const char *ubus_socket = NULL;
   struct ubus_context *ctx_local;
 
+  if(!sms_msg)
+  {
+    printf("sms message could not be NULL.\n");
+    return FALSE;
+  }
+
   ctx_local = ubus_connect(ubus_socket);
   if (!ctx_local) {
     printf("Failed to connect to ubus\n");
@@ -244,6 +252,8 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
 {
   int cmd_unlock_sim_result = FALSE;
   int cmd_radio_active = TRUE;
+  int cmd_get_cimi_result = TRUE;
+  int step = 1;
   char num_append[20];
   char msg[CMD_MSG_MAX_LEN];
   char client_msg[CMD_MSG_MAX_LEN] = "Unlock sim card:";
@@ -252,9 +262,15 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
   char *ubus_method = "at_send_cmd";
   char cmd_name_cpin_insert[CMD_LEN] = "at+cpin=";
 
+  if(!recv_msg || !pin)
+  {
+    printf("Receive a Message NULL.\n");
+    return FALSE;
+  }
+
   printf("\n\n\n**********************Start to unlock sim card.*********************\n");
 
-  printf("1. Sending command : %s\n", cmd_name_cfun_enable);
+  printf("%d. Sending command : %s\n", step, cmd_name_cfun_enable);
 
   if(client_ubus_process(ubus_object, ubus_method, cmd_name_cfun_enable) == TRUE)
   {
@@ -265,24 +281,56 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
     cmd_radio_active = FALSE;
   }
 
-  printf("2. Sending command : %s\n", cmd_name_cpin_query);
+  step++;
+
+  printf("%d. Sending command : %s\n", step, cmd_name_cpin_query);
 
   if(client_ubus_process(ubus_object, ubus_method, cmd_name_cpin_query) == TRUE)
   {
       cmd_unlock_sim_result = TRUE;
   }
 
-  if(cmd_unlock_sim_result == FALSE)
+  step ++;
+
+  if(!strstr(client_reply_msg, "READY"))
   {
-    printf("3. Sending command : %s\n", strncat(cmd_name_cpin_insert, pin, strlen(pin)));
-    client_ubus_process(ubus_object, ubus_method, strncat(cmd_name_cpin_insert, pin, strlen(pin)));
+    printf("%d. Sending command : %s\n", step, strncat(cmd_name_cpin_insert, pin, strlen(pin)));
+    client_ubus_process(ubus_object, ubus_method, cmd_name_cpin_insert);
+    step ++;
   }
 
-  if(cmd_radio_active == TRUE && cmd_unlock_sim_result == TRUE)
+  printf("%d. Sending command : %s\n", step, cmd_name_get_cimi);
+
+  if(client_ubus_process(ubus_object, ubus_method, cmd_name_get_cimi) == TRUE)
+  {
+    cmd_get_cimi_result = TRUE;
+  }
+  else
+  {
+    cmd_get_cimi_result = FALSE;
+  }
+
+  char *cimi_num = get_cimi_num(client_reply_msg);
+
+  memset(client_cimi_num, '\0', CIMI_NUM_LEN);
+
+  if(cimi_num){
+    strncpy(client_cimi_num, cimi_num, CIMI_NUM_LEN);
+  }
+  else
+  {
+    printf("Error cimi message format.\n");
+    free(cimi_num);
+    cimi_num = NULL;
+  }
+
+  if(cmd_radio_active == TRUE && cmd_unlock_sim_result == TRUE && cmd_get_cimi_result == TRUE)
   {
     printf("unlock sim card successful.\n");
     strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
+    free(cimi_num);
+    cimi_num = NULL;
     return TRUE;
   }
   else
@@ -361,6 +409,12 @@ static int ublx_af_net_list_do(char *recv_msg)
   char *ubus_object = "ublxat";
   char *ubus_method = "at_send_cmd";
 
+  if(!recv_msg)
+  {
+    printf("Receive a Message NULL.\n");
+    return FALSE;
+  }
+
   printf("\n\n\n**********************Start to list cellular network.*********************\n");
 
   printf("1. Sending command : %s\n", cmd_name_list_operator);
@@ -433,27 +487,41 @@ static int ublx_af_net_list(struct ubus_context *ctx, struct ubus_object *obj,
 /***************************************************************/
 /*Ubus object method handler function*/
 
-/* get home network address */
+/* get home network registration */
 static int ublx_af_net_home_do(char *recv_msg)
 {
   int ublx_af_net_home_result = FALSE;
+  int ublx_af_net_reg_result = FALSE;
   char num_append[20];
   char msg[CMD_MSG_MAX_LEN];
-  char client_msg[CMD_MSG_MAX_LEN] = "List home network ip address:";
+  char client_msg[CMD_MSG_MAX_LEN] = "Check home network registration:";
   int ret;
   char *ubus_object = "ublxat";
   char *ubus_method = "at_send_cmd";
 
-  printf("\n\n\n**********************Start to get home network address.*********************\n");  
+  if(!recv_msg)
+  {
+    printf("Receive a Message NULL.\n");
+    return FALSE;
+  }
 
-  printf("1. Sending command : %s\n", cmd_name_get_public_addr);
+  printf("\n\n\n**********************Start to get home network condition.*********************\n");
+
+  printf("1. Sending command : %s\n", cmd_name_registered_operator);
 
   if(client_ubus_process(ubus_object, ubus_method, cmd_name_registered_operator) == TRUE)
   {
      ublx_af_net_home_result = TRUE;
   }
 
-  if(ublx_af_net_home_result == TRUE)
+  printf("2. Sending command : %s\n", cmd_name_check_registered);
+
+  if(client_ubus_process(ubus_object, ubus_method, cmd_name_check_registered) == TRUE)
+  {
+     ublx_af_net_reg_result = TRUE;
+  }
+
+  if(ublx_af_net_home_result == TRUE && ublx_af_net_reg_result == TRUE)
   {
     printf("List home network ip address successful.\n");
     strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
@@ -530,6 +598,12 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
   char cmd_name_send_sms[CMD_LEN] = "at+cmgs=";
   char cmd_name[CMD_LEN];
 
+  if(!recv_msg || !num)
+  {
+    printf("Receive a Message NULL.\n");
+    return FALSE;
+  }
+
   printf("\n\n\n**********************Start to send sms message to number:%s.*********************\n", num); 
 
   printf("1. Sending command : %s\n", cmd_name_set_sms);
@@ -542,10 +616,10 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
   {
     goto send_sms_error;
   }
-/*
-  printf("2. Sending command : %s\n", cmd_name_get_cimi);
 
-  if(client_ubus_process(ubus_object, ubus_method_cmd, cmd_name_get_cimi) == TRUE)
+  printf("2. Sending command : %s with message: %s\n", cmd_name, client_cimi_num);
+
+  if(client_ubus_process_with_message(ubus_object, ubus_method_sms, cmd_name, client_cimi_num) == TRUE)
   {
     ublx_af_send_sms_result = TRUE;
   }
@@ -554,30 +628,11 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
     goto send_sms_error;
   }
 
-  snprintf(cmd_name, strlen(cmd_name_send_sms)+strlen(num)+3, "%s\"%s\"", cmd_name_send_sms, num);
-
-  char *cimi_num = get_cimi_num(client_reply_msg);
-
-  printf("3. Sending command : %s with message: %s\n", cmd_name, cimi_num);
-
-  if(client_ubus_process_with_message(ubus_object, ubus_method_sms, cmd_name, cimi_num) == TRUE)
-  {
-    ublx_af_send_sms_result = TRUE;
-  }
-  else
-  {
-    free(cimi_num);
-    cimi_num = NULL;
-    goto send_sms_error;
-  }
-*/
   if(ublx_af_send_sms_result == TRUE)
   {
     printf("Send sms successful.\n");
     strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
-//    free(cimi_num);
-//    cimi_num = NULL;
     return TRUE;
   }
 

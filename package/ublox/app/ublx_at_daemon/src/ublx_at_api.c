@@ -120,14 +120,14 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
 
   if(cmd_send_cmd_result == TRUE)
   {
-    printf("send at command:%s successful.\n", cmd);
+    printf("\n\n\nsend at command:%s successful.\n", cmd);
     strncat(client_msg, msg, strlen(msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
   else
   {
-    printf("send at command failed.\n");
+    printf("\n\n\nsend at command failed.\n");
     strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;
@@ -215,7 +215,8 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
   int cmd_send_sms_result;
   char num_append[20];
   char msg[CMD_MSG_MAX_LEN];
-  char client_msg[CMD_MSG_MAX_LEN] = "Send message via sms:";
+  char client_msg[CMD_MSG_MAX_LEN];
+  char *format = "Send message via sms: %s";
   int ret;
 
   printf("\n\n\n*************Command to be sent to serial port: %s with message: %s***************************\n", cmd, sms_msg);
@@ -236,16 +237,18 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
      return FALSE;
   }
 
+  snprintf(client_msg, strlen(format)+strlen(cmd)+1, format, cmd);
+
   if(cmd_send_sms_result == TRUE)
   {
-    printf("send at command:%s via sms successful.\n", cmd);
-    strncat(client_msg, MSG_OK, strlen(MSG_OK));
+    printf("\n\n\n send at command:%s via sms successful.\n", cmd);
+    strncat(client_msg, msg, strlen(msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
   else
   {
-    printf("send at command via sms failed.\n");
+    printf("\n\n\n send at command via sms failed.\n");
     strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;

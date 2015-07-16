@@ -104,6 +104,18 @@ static void string_parsing(char *string)
 {
   char string_parsed [MSG_LEN];
   char *str_ret = NULL;
+
+  if(string == NULL)
+  {
+    return;
+  }
+
+  if(strstr(string, "at+") == NULL)
+  {
+    printf("OK\n\n\n");
+    return;
+  }
+
   strcpy(string_parsed, string);
   str_replace(string_parsed, "\\\\r\\\\r\\\\n", "\n");
   str_replace(string_parsed, "\\\\\\\"", "\"");
@@ -166,9 +178,14 @@ static void receive_call_result_sync(struct ubus_request *req, int type, struct 
 
   printf("\n********************** Receive synchrnous call result. ********************\n");
 
-  string_parsing(str);
-
-  free(str);
+  if(strstr(str, "OK"))
+  {
+    string_parsing(str);
+  }
+  else
+  {
+    printf("ERROR.\n");
+  }
 }
 
 static void receive_call_result_async(struct ubus_request *req, int type, struct blob_attr *msg)
@@ -178,11 +195,11 @@ static void receive_call_result_async(struct ubus_request *req, int type, struct
   {
     return;
   }
+
   str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, 0);
 
   printf("\n\n\n********************** Receive asynchrnous call result. ********************\n");
   string_parsing(str);
-  free(str);
 }
 
 
@@ -338,10 +355,12 @@ int main(int argc, char *argv[])
       break;
     case 't':
       ublx_test_timeout = atoi(optarg);
+      break;
     case 'h':
       printf("Please specify the parameters.\n");
       printf("-a call api function in asychronous mode.\n");
       printf("-t specify the sychronous call method timeout, default value is 120s.\n");
+      exit(0);
     default:
       break;
     }
@@ -368,6 +387,7 @@ int main(int argc, char *argv[])
 
   if(is_async_call == 1)
   {
+    printf("\n\n\n!!!Asychronous call method run in loop and wait for remote message callback.....\n\n\n");
     uloop_run();
     uloop_done();
   }

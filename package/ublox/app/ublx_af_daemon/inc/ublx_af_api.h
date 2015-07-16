@@ -37,6 +37,7 @@
 #include "ublx_af_common.h"
 
 #define UBLX_AF_INVOKE_TIMEOUT 120000
+#define CIMI_NUM_LEN 128
 
 extern struct ubus_context *ctx;
 
