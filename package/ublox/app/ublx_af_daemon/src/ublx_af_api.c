@@ -39,15 +39,16 @@ static char cmd_name_cfun_enable[CMD_LEN]         = "at+cfun=1";
 static char cmd_name_cfun_disable[CMD_LEN]        = "at+cfun=0";
 static char cmd_name_cpin_query[CMD_LEN]          = "at+cpin?";
 static char cmd_name_cgdcont_query[CMD_LEN]       = "at+cgdcont?";
-static char cmd_name_context_active[CMD_LEN]      = "at!scact=1,1";
-static char cmd_name_context_deactive[CMD_LEN]    = "at!scact=0,1";
-static char cmd_name_get_public_addr[CMD_LEN]     = "at!scpaddr=1";
 static char cmd_name_set_sms[CMD_LEN]             = "at+cmgf=1";
 static char cmd_name_get_cimi[CMD_LEN]            = "at+cimi";
 static char cmd_name_list_operator[CMD_LEN]       = "at+cops=?";
 static char cmd_name_registered_operator[CMD_LEN] = "at+cops?";
 static char cmd_name_check_registered[CMD_LEN]    = "at+creg?";
+static char cmd_name_cgdcont_enable[CMD_LEN]      = "at+cgdcont=1,\"IP\",\"ibox.tim.it\"";
+static char cmd_name_context_active[CMD_LEN]      = "at!scact=1,1";
+static char cmd_name_get_public_addr[CMD_LEN]     = "at!scpaddr=1";
 
+static int is_network_connected = 0;
 
 /***************************************************************/
 /*Ubus object policy configuration*/
@@ -78,6 +79,7 @@ static const struct ubus_method ublx_af_methods[] = {
   UBUS_METHOD("unlock_sim",  ublx_unlock_sim, ublx_af_unlock_sim_policy),
   {.name = "net_list",      .handler = ublx_af_net_list},
   {.name = "net_home",      .handler = ublx_af_net_home},
+  {.name = "net_connect",   .handler = ublx_af_net_connect},
   UBUS_METHOD("send_sms",    ublx_af_send_sms, ublx_af_send_sms_policy),
 };
 
@@ -264,11 +266,13 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
 
   if(!recv_msg || !pin)
   {
-    printf("Receive a Message NULL.\n");
+    printf("Receive Message buffer NULL.\n");
     return FALSE;
   }
 
-  printf("\n\n\n**********************Start to unlock sim card.*********************\n");
+  strncat(cmd_name_cpin_insert, pin, strlen(pin));
+
+  printf("\n\n\n**************Start to unlock sim card.**************\n");
 
   printf("%d. Sending command : %s\n", step, cmd_name_cfun_enable);
 
@@ -281,6 +285,8 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
     cmd_radio_active = FALSE;
   }
 
+  sleep(1);
+
   step++;
 
   printf("%d. Sending command : %s\n", step, cmd_name_cpin_query);
@@ -290,14 +296,20 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
       cmd_unlock_sim_result = TRUE;
   }
 
+  sleep(1);
+
   step ++;
 
   if(!strstr(client_reply_msg, "READY"))
   {
-    printf("%d. Sending command : %s\n", step, strncat(cmd_name_cpin_insert, pin, strlen(pin)));
+    printf("%d. Sending command : %s\n", step, cmd_name_cpin_insert);
     client_ubus_process(ubus_object, ubus_method, cmd_name_cpin_insert);
     step ++;
   }
+
+  printf("Wait for 60 seconds for network registration...\n");
+
+  sleep(60);
 
   printf("%d. Sending command : %s\n", step, cmd_name_get_cimi);
 
@@ -391,6 +403,8 @@ static int ublx_unlock_sim(struct ubus_context *ctx, struct ubus_object *obj,
   free(hreq);
   hreq = NULL;
 
+  printf("\n\n*************************************************************************\n\n\n\n");
+
   return 0;
 }
 
@@ -411,11 +425,11 @@ static int ublx_af_net_list_do(char *recv_msg)
 
   if(!recv_msg)
   {
-    printf("Receive a Message NULL.\n");
+    printf("Receive Message buffer NULL.\n");
     return FALSE;
   }
 
-  printf("\n\n\n**********************Start to list cellular network.*********************\n");
+  printf("\n\n\n**************Start to list cellular network.*************\n");
 
   printf("1. Sending command : %s\n", cmd_name_list_operator);
 
@@ -480,6 +494,8 @@ static int ublx_af_net_list(struct ubus_context *ctx, struct ubus_object *obj,
   free(hreq);
   hreq = NULL;
 
+  printf("\n\n*************************************************************************\n\n\n\n");
+
   return 0;
 }
 
@@ -487,7 +503,7 @@ static int ublx_af_net_list(struct ubus_context *ctx, struct ubus_object *obj,
 /***************************************************************/
 /*Ubus object method handler function*/
 
-/* get home network registration */
+/* check home network registration */
 static int ublx_af_net_home_do(char *recv_msg)
 {
   int ublx_af_net_home_result = FALSE;
@@ -501,11 +517,12 @@ static int ublx_af_net_home_do(char *recv_msg)
 
   if(!recv_msg)
   {
-    printf("Receive a Message NULL.\n");
+    printf("Receive Message buffer NULL.\n");
     return FALSE;
   }
 
-  printf("\n\n\n**********************Start to get home network condition.*********************\n");
+/*
+  printf("\n\n\n**************Start to get home network condition.*************\n");
 
   printf("1. Sending command : %s\n", cmd_name_registered_operator);
 
@@ -514,7 +531,9 @@ static int ublx_af_net_home_do(char *recv_msg)
      ublx_af_net_home_result = TRUE;
   }
 
-  printf("2. Sending command : %s\n", cmd_name_check_registered);
+  sleep(2);
+*/
+  printf("1. Sending command : %s\n", cmd_name_check_registered);
 
   if(client_ubus_process(ubus_object, ubus_method, cmd_name_check_registered) == TRUE)
   {
@@ -577,8 +596,127 @@ static int ublx_af_net_home(struct ubus_context *ctx, struct ubus_object *obj,
   free(hreq);
   hreq = NULL;
 
+  printf("\n\n*************************************************************************\n\n\n\n");
+
   return 0;
 }
+
+
+
+/***************************************************************/
+/*Ubus object method handler function*/
+
+/* check home network registration */
+static int ublx_af_net_connect_do(char *recv_msg)
+{
+  int ublx_af_net_cgdcont_result = FALSE;
+  int ublx_af_net_active_result = FALSE;
+  int ublx_af_net_get_addr = FALSE;
+  char num_append[20];
+  char msg[CMD_MSG_MAX_LEN];
+  char client_msg[CMD_MSG_MAX_LEN] = "Active a new network connection context:";
+  int step = 1;
+  char *ubus_object = "ublxat";
+  char *ubus_method = "at_send_cmd";
+
+  if(!recv_msg)
+  {
+    printf("Receive Message buffer NULL.\n");
+    return FALSE;
+  }
+
+  printf("\n\n\n**************Start to active a new network connection context.*************\n");
+
+  if(!is_network_connected)
+  {
+    printf("%d. Sending command : %s\n", step, cmd_name_cgdcont_enable);
+
+    if(client_ubus_process(ubus_object, ubus_method, cmd_name_cgdcont_enable) == TRUE)
+    {
+      ublx_af_net_cgdcont_result = TRUE;
+    }
+
+    step ++;
+   
+    printf("%d. Sending command : %s\n", step, cmd_name_context_active);
+
+    if(client_ubus_process(ubus_object, ubus_method, cmd_name_context_active) == TRUE)
+    {
+      ublx_af_net_active_result = TRUE;
+    }
+    step ++;
+    is_network_connected = 1;
+  }
+  
+  printf("%d. Sending command : %s\n", step, cmd_name_get_public_addr);
+
+  if(client_ubus_process(ubus_object, ubus_method, cmd_name_get_public_addr) == TRUE)
+  {
+     ublx_af_net_get_addr = TRUE;
+  }
+
+  if(ublx_af_net_cgdcont_result == TRUE && ublx_af_net_active_result == TRUE && ublx_af_net_get_addr == TRUE)
+  {
+    printf("Active a new network connection context successful.\n");
+    strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
+    return TRUE;
+  }
+  else
+  {
+    printf("Active a new network connection context failed.\n");
+    strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
+    strncpy(recv_msg, client_msg, strlen(client_msg));
+    return FALSE;
+  }
+}
+
+static int ublx_af_net_connect(struct ubus_context *ctx, struct ubus_object *obj,
+          struct ubus_request_data *req, const char *method,
+          struct blob_attr *msg)
+{
+  const char *format = "%s received a message: %s";
+  char data[CMD_MSG_LEN];
+  char *msgstr = data;
+
+  int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
+
+  char reply_msg[reply_msg_len];
+
+  struct ubus_request_data *hreq = (struct ubus_request_data *)malloc(sizeof(struct ubus_request_data));
+
+  memset(hreq, 0, sizeof(struct ubus_request_data));
+
+  memset(reply_msg, '\0', reply_msg_len);
+
+  memset(msgstr, '\0', CMD_MSG_LEN);
+
+  if(ublx_af_net_connect_do(msgstr) == FALSE)
+  {
+    printf("ublx_af_net_list failed.\n");
+  }
+
+//  sprintf(reply_msg, format, obj->name, msgstr);
+
+  ubus_defer_request(ctx, req, hreq);
+
+  blob_buf_init(&b, 0);
+
+  blobmsg_add_string(&b, "message", client_reply_msg);
+
+  ubus_send_reply(ctx, hreq, b.head);
+
+  ubus_complete_deferred_request(ctx, hreq, 0);
+
+  free(hreq);
+  hreq = NULL;
+
+  printf("\n\n*************************************************************************\n\n\n\n");
+
+  return 0;
+}
+
+
 
 
 /***************************************************************/
@@ -591,20 +729,21 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
   int ublx_af_send_sms_result;
   char num_append[20];
   char client_msg[CMD_MSG_MAX_LEN] = "Send message via sms:";
-  int ret;
   char *ubus_object = "ublxat";
   char *ubus_method_cmd = "at_send_cmd";
   char *ubus_method_sms = "at_send_sms";
-  char cmd_name_send_sms[CMD_LEN] = "at+cmgs=";
+  char cmd_name_send_sms[CMD_LEN] = "at+cmgs=\"";
   char cmd_name[CMD_LEN];
 
   if(!recv_msg || !num)
   {
-    printf("Receive a Message NULL.\n");
+    printf("Receive Message buffer NULL.\n");
     return FALSE;
   }
 
-  printf("\n\n\n**********************Start to send sms message to number:%s.*********************\n", num); 
+  snprintf(cmd_name, strlen(cmd_name_send_sms)+strlen(num)+3, "%s%s\"", cmd_name_send_sms, num);
+
+  printf("\n\n\n**************Start to send sms message to number:%s.*************\n", num);
 
   printf("1. Sending command : %s\n", cmd_name_set_sms);
 
@@ -691,6 +830,8 @@ static int ublx_af_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
 
   free(hreq);
   hreq = NULL;
+
+  printf("\n\n*************************************************************************\n\n\n\n");
 
   return 0;
 }

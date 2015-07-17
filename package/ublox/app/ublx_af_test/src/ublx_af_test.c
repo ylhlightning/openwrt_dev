@@ -61,18 +61,21 @@ static int ublx_net_home(uint32_t id, char *ubus_method, int is_async_call);
 
 static int ublx_net_list(uint32_t id, char *ubus_method, int is_async_call);
 
+static int ublx_net_connect(uint32_t id, char *ubus_method, int is_async_call);
+
 static int ublx_send_sms(uint32_t id, char *ubus_method, int is_async_call);
 
 ublx_api_t ublx_api_table[] = {
-  {"unlock_sim", ublx_unlock_sim},
-  {"net_list", ublx_net_list},
-  {"net_home", ublx_net_home},
-  {"send_sms", ublx_send_sms}
+  {"unlock_sim",  ublx_unlock_sim},
+  {"net_list",    ublx_net_list},
+  {"net_home",    ublx_net_home},
+  {"net_connect", ublx_net_connect},
+  {"send_sms",    ublx_send_sms}
 };
 
 int api_num = sizeof(ublx_api_table)/sizeof(ublx_api_t);
 
-static int str_replace(char* str,char* str_src, char* str_des){
+static int str_replace(char* str, char* str_src, char* str_des){
   char *ptr=NULL;
   char buff[MSG_LEN];
   char buff2[MSG_LEN];
@@ -104,23 +107,50 @@ static void string_parsing(char *string)
 {
   char string_parsed [MSG_LEN];
   char *str_ret = NULL;
+  int at_format_plus = 0;
+  int at_format_esclamation = 0;
 
   if(string == NULL)
   {
     return;
   }
 
-  if(strstr(string, "at+") == NULL)
+  if(strstr(string, "at+") != NULL)
+  {
+    at_format_plus = 1;
+  }
+
+  if(strstr(string, "at!") != NULL)
+  {
+    at_format_esclamation = 1;
+  }
+
+  if(at_format_plus == 0 && at_format_esclamation == 0)
+  {
+    printf("OK\n\n\n");
+    return;
+  }
+  
+  strcpy(string_parsed, string);
+  str_replace(string_parsed, "\\\\r\\\\r\\\\n", "\n");
+  str_replace(string_parsed, "\\\\\\\"", "\"");
+  str_replace(string_parsed, "\\\\r\\\\n", "\n");
+  str_replace(string_parsed, "\\\\n", "\n");
+
+  if(at_format_plus)
+  {
+    str_ret = strstr(string_parsed, "at+");
+  }
+  else if(at_format_esclamation)
+  {
+    str_ret = strstr(string_parsed, "at!");
+  }
+  else
   {
     printf("OK\n\n\n");
     return;
   }
 
-  strcpy(string_parsed, string);
-  str_replace(string_parsed, "\\\\r\\\\r\\\\n", "\n");
-  str_replace(string_parsed, "\\\\\\\"", "\"");
-  str_replace(string_parsed, "\\\\r\\\\n", "\n");
-  str_ret = strstr(string_parsed, "at+");
   str_replace(string_parsed, "}", "");
   str_replace(string_parsed, "\\\"\\n\"", "");
   printf("%s\n", str_ret);
@@ -164,7 +194,7 @@ static void test_client_complete_cb(struct ubus_request *req, int ret)
     printf("Completed asynchronous call request: FAIL.\n");
   }
 
-  printf("\n*************************************************************************\n\n\n");
+  printf("\n***********************************************************************************\n\n\n\n\n\n");
 }
 
 static void receive_call_result_sync(struct ubus_request *req, int type, struct blob_attr *msg)
@@ -176,7 +206,7 @@ static void receive_call_result_sync(struct ubus_request *req, int type, struct 
   }
   str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, 0);
 
-  printf("\n********************** Receive synchrnous call result. ********************\n");
+  printf("\n!!! Attention: Received synchrnous call result:\n\n\n");
 
   if(strstr(str, "OK"))
   {
@@ -186,6 +216,7 @@ static void receive_call_result_sync(struct ubus_request *req, int type, struct 
   {
     printf("ERROR.\n");
   }
+  printf("\n***********************************************************************************\n\n\n\n\n\n"); 
 }
 
 static void receive_call_result_async(struct ubus_request *req, int type, struct blob_attr *msg)
@@ -198,7 +229,8 @@ static void receive_call_result_async(struct ubus_request *req, int type, struct
 
   str = blobmsg_format_json_with_cb(msg, true, NULL, NULL, 0);
 
-  printf("\n\n\n********************** Receive asynchrnous call result. ********************\n");
+  printf("\n********************** Receive synchrnous call result. ********************\n");
+
   string_parsing(str);
 }
 
@@ -218,20 +250,22 @@ static void add_method_parameter(char *ubus_method)
 
 static void ubus_sync_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
 {
-  printf("\nSynchronized method call with timeout: %d seconds.\n", ublx_test_timeout/1000);
+  printf("\nubus synchronized method call with timeout: %d seconds.\n", ublx_test_timeout/1000);
 
   /* init message buffer */
   blob_buf_init(&b, 0);
 
   add_method_parameter(ubus_method);
 
+  printf("\n\nubus sychronous call blocking and wait for remote reply...\n\n\n");
+
   /* invoke a ubus call */
-  ubus_invoke(ctx, id, ubus_method, b.head, receive_call_result_sync, 0, UBLX_AF_INVOKE_TIMEOUT);
+  ubus_invoke(ctx, id, ubus_method, b.head, receive_call_result_sync, 0, ublx_test_timeout);
 }
 
 static void ubus_async_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
 {
-  printf("\nAsynchronized method call.\n");
+  printf("\nubus asynchronized method call.\n");
 
   struct ubus_request *req = (struct ubus_request*)malloc(sizeof(struct ubus_request));
 
@@ -239,6 +273,8 @@ static void ubus_async_call(struct ubus_context *ctx, uint32_t id, char *ubus_me
   blob_buf_init(&b, 0);
 
   add_method_parameter(ubus_method);
+
+  printf("\n\nubus asychronous call and return immediately\n\n\n");
 
   /* invoke an asynchronized ubus call. */
   ubus_invoke_async(ctx, id, ubus_method, b.head, req);
@@ -257,6 +293,12 @@ static int ublx_unlock_sim(uint32_t id, char *ubus_method, int is_async_call)
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
 
+  if(!ctx)
+  {
+    printf("Lookup for Ubus object failed....exit\n");
+    return -1;
+  }
+
   if(is_async_call == 1)
   {
 /*Asynchronized method call example*/
@@ -269,7 +311,7 @@ static int ublx_unlock_sim(uint32_t id, char *ubus_method, int is_async_call)
     ubus_free(ctx);
   }
 
-  return 1;
+  return 0;
 }
 
 static int ublx_net_list(uint32_t id, char *ubus_method, int is_async_call)
@@ -277,6 +319,13 @@ static int ublx_net_list(uint32_t id, char *ubus_method, int is_async_call)
   printf("\n\n\n***************** Start to call %s api function. ********************\n", __FUNCTION__);
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
+
+  if(!ctx)
+  {
+    printf("Lookup for Ubus object failed....exit\n");
+    return -1;
+  }
+
 
   if(is_async_call == 1)
   {
@@ -290,7 +339,7 @@ static int ublx_net_list(uint32_t id, char *ubus_method, int is_async_call)
      ubus_free(ctx);
   }
 
-  return 1;
+  return 0;
 
 }
 
@@ -300,6 +349,13 @@ static int ublx_net_home(uint32_t id, char *ubus_method, int is_async_call)
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
 
+  if(!ctx)
+  {
+    printf("Lookup for Ubus object failed....exit\n");
+    return -1;
+  }
+
+
   if(is_async_call == 1)
   {
 /*Asynchronized method call example*/
@@ -312,9 +368,39 @@ static int ublx_net_home(uint32_t id, char *ubus_method, int is_async_call)
     ubus_free(ctx);
   }
 
-  return 1;
+  return 0;
 
 }
+
+
+static int ublx_net_connect(uint32_t id, char *ubus_method, int is_async_call)
+{
+  printf("\n\n\n***************** Start to call %s api function. ********************\n", __FUNCTION__);
+
+  struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
+
+  if(!ctx)
+  {
+    printf("Lookup for Ubus object failed....exit\n");
+    return -1;
+  }
+
+  if(is_async_call == 1)
+  {
+/*Asynchronized method call example*/
+    ubus_async_call(ctx, id, ubus_method);
+  }
+  else
+  {
+/*Synchronized method call example*/
+    ubus_sync_call(ctx, id, ubus_method);
+    ubus_free(ctx);
+  }
+
+  return 0;
+
+}
+
 
 static int ublx_send_sms(uint32_t id, char *ubus_method, int is_async_call)
 {
@@ -322,6 +408,12 @@ static int ublx_send_sms(uint32_t id, char *ubus_method, int is_async_call)
 
   struct ubus_context *ctx = ubus_init(&id, ubus_object, is_async_call);
 
+  if(!ctx)
+  {
+    printf("Lookup for Ubus object failed....exit\n");
+    return -1;
+  }
+
   if(is_async_call == 1)
   {
 /*Asynchronized method call example*/
@@ -334,7 +426,7 @@ static int ublx_send_sms(uint32_t id, char *ubus_method, int is_async_call)
     ubus_free(ctx);
   }
 
-  return 1;
+  return 0;
 
 }
 
@@ -374,15 +466,41 @@ int main(int argc, char *argv[])
   {
     ublx_test_timeout = ublx_test_timeout * 1000;
   }
+
+  printf("\n\n*****************************************\n");
+  printf("**** Start to run ublx process Test. ****\n");
+  printf("*****************************************\n\n");
+
+  printf("ubus invoke sequence:\n\n");
+  printf("1. unlock_sim\n");
+  printf("2. net_list\n");
+  printf("3. net_home\n");
+  printf("4. net_connect\n");
+  printf("5. send_sms\n\n\n\n");
+  printf("Please press any keys to continue.....\n\n\n");
+
+  getchar();
   
   ublx_api_t *ublx_api_table_ptr = ublx_api_table;
 
   for(i = 0; i < api_num; i++)
   {
     name = ublx_api_table_ptr->name;
-    ublx_api_table_ptr->api_func(id, name, is_async_call);
+
+    if(ublx_api_table_ptr->api_func(id, name, is_async_call) < 0)
+    {
+      printf("Fatal error happens....exit.\n");
+      exit(1);
+    }
+
     ublx_api_table_ptr ++;
-    sleep(1);
+
+    if(i < api_num - 1)
+    {
+      printf("Wait 10 seconds for next ubus call invoke: %s\n\n\n", ublx_api_table_ptr->name);
+    }
+    
+    sleep(10);
   }
 
   if(is_async_call == 1)

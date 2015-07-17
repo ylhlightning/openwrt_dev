@@ -36,6 +36,10 @@ static void server_main(void)
 {
   int ret;
 
+  printf("\n\n*****************************************\n");
+  printf("***** Start to run ublx process AT. *****\n");
+  printf("*****************************************\n\n");
+
   modem_fd = open_modem(MODEM_PORT_NAME);
   if(modem_fd < 0)
   {
@@ -76,8 +80,6 @@ int main(int argc, char **argv)
     fprintf(stderr, "Failed to connect to ubus\n");
     return -1;
   }
-
-  printf("Start to run ublx process AT.\n");
 
   ubus_add_uloop(ctx);
 

@@ -100,7 +100,7 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
   char client_msg[CMD_MSG_MAX_LEN] = "Send cmd:";
   int ret;
 
-  printf("\n\n\n*************Command to be sent to serial port: %s***************************\n", cmd);
+  printf("\n\n\n***********Command to be sent to serial port: %s****************\n", cmd);
 
   append_quotation_mark(cmd, num_append);
 
@@ -182,6 +182,8 @@ static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
   free(hreq);
   hreq = NULL;
 
+  printf("\n\n*************************************************************************\n\n\n\n");
+
   return 0;
 }
 
@@ -219,7 +221,7 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
   char *format = "Send message via sms: %s";
   int ret;
 
-  printf("\n\n\n*************Command to be sent to serial port: %s with message: %s***************************\n", cmd, sms_msg);
+  printf("\n\n\n***Command to be sent to serial port: %s with message: %s*****\n", cmd, sms_msg);
 
   append_quotation_mark(cmd, num_append);
 
@@ -302,6 +304,8 @@ static int ublx_at_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
 
   free(hreq);
   hreq = NULL;
+
+  printf("\n\n*************************************************************************\n\n\n\n");
 
   return 0;
 }

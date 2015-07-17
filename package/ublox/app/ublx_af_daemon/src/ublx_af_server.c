@@ -69,8 +69,10 @@ int main(int argc, char **argv)
     fprintf(stderr, "Failed to connect to ubus\n");
     return -1;
   }
+  printf("\n\n*****************************************\n");
+  printf("***** Start to run ublx process AF. *****\n");
+  printf("*****************************************\n\n");
 
-  printf("Start to run ublx process AF.\n");
 
   ubus_add_uloop(ctx);
 
