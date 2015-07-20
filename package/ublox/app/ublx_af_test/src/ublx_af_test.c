@@ -75,6 +75,27 @@ ublx_api_t ublx_api_table[] = {
 
 int api_num = sizeof(ublx_api_table)/sizeof(ublx_api_t);
 
+static void timestamp()
+{
+    struct timeval detail_time;
+    struct tm *Tm;
+    time_t ltime;
+
+    ltime=time(NULL);
+
+    Tm=localtime(&ltime);
+
+    gettimeofday(&detail_time,NULL);
+
+    printf("\nTimestamp: [%d:%d:%d.%d%d]\n\n",
+            Tm->tm_hour,
+            Tm->tm_min,
+            Tm->tm_sec,
+            detail_time.tv_usec /1000,  /* milliseconds */
+            detail_time.tv_usec); /* microseconds */
+}
+
+
 static int str_replace(char* str, char* str_src, char* str_des){
   char *ptr=NULL;
   char buff[MSG_LEN];
@@ -252,6 +273,8 @@ static void ubus_sync_call(struct ubus_context *ctx, uint32_t id, char *ubus_met
 {
   printf("\nubus synchronized method call with timeout: %d seconds.\n", ublx_test_timeout/1000);
 
+  timestamp();
+
   /* init message buffer */
   blob_buf_init(&b, 0);
 
@@ -266,6 +289,8 @@ static void ubus_sync_call(struct ubus_context *ctx, uint32_t id, char *ubus_met
 static void ubus_async_call(struct ubus_context *ctx, uint32_t id, char *ubus_method)
 {
   printf("\nubus asynchronized method call.\n");
+
+  timestamp();
 
   struct ubus_request *req = (struct ubus_request*)malloc(sizeof(struct ubus_request));
 

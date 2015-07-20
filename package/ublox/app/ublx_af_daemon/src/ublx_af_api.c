@@ -131,6 +131,25 @@ void ublx_add_object_af(void)
   }
 }
 
+static void timestamp()
+{
+    struct timeval detail_time;
+    struct tm *Tm;
+    time_t ltime;
+
+    ltime=time(NULL);
+
+    Tm=localtime(&ltime);
+
+    gettimeofday(&detail_time,NULL);
+
+    printf("\nTimestamp: [%d:%d:%d.%d%d]\n\n",
+            Tm->tm_hour,
+            Tm->tm_min,
+            Tm->tm_sec,
+            detail_time.tv_usec /1000,  /* milliseconds */
+            detail_time.tv_usec); /* microseconds */
+}
 
 static void receive_call_result_data(struct ubus_request *req, int type, struct blob_attr *msg)
 {
@@ -273,6 +292,8 @@ static int ublx_af_unlock_sim_do(char *recv_msg, char *pin)
   strncat(cmd_name_cpin_insert, pin, strlen(pin));
 
   printf("\n\n\n**************Start to unlock sim card.**************\n");
+
+  timestamp();
 
   printf("%d. Sending command : %s\n", step, cmd_name_cfun_enable);
 
@@ -431,6 +452,8 @@ static int ublx_af_net_list_do(char *recv_msg)
 
   printf("\n\n\n**************Start to list cellular network.*************\n");
 
+  timestamp();
+
   printf("1. Sending command : %s\n", cmd_name_list_operator);
 
   if(client_ubus_process(ubus_object, ubus_method, cmd_name_list_operator) == TRUE)
@@ -506,7 +529,7 @@ static int ublx_af_net_list(struct ubus_context *ctx, struct ubus_object *obj,
 /* check home network registration */
 static int ublx_af_net_home_do(char *recv_msg)
 {
-  int ublx_af_net_home_result = FALSE;
+//  int ublx_af_net_home_result = FALSE;
   int ublx_af_net_reg_result = FALSE;
   char num_append[20];
   char msg[CMD_MSG_MAX_LEN];
@@ -521,9 +544,12 @@ static int ublx_af_net_home_do(char *recv_msg)
     return FALSE;
   }
 
-/*
+
   printf("\n\n\n**************Start to get home network condition.*************\n");
 
+  timestamp();
+
+/*
   printf("1. Sending command : %s\n", cmd_name_registered_operator);
 
   if(client_ubus_process(ubus_object, ubus_method, cmd_name_registered_operator) == TRUE)
@@ -540,16 +566,16 @@ static int ublx_af_net_home_do(char *recv_msg)
      ublx_af_net_reg_result = TRUE;
   }
 
-  if(ublx_af_net_home_result == TRUE && ublx_af_net_reg_result == TRUE)
+  if(ublx_af_net_reg_result == TRUE)
   {
-    printf("List home network ip address successful.\n");
+    printf("List home network successful.\n");
     strncat(client_msg, client_reply_msg, strlen(client_reply_msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
   }
   else
   {
-    printf("List home network ip address failed.\n");
+    printf("List home network failed.\n");
     strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return FALSE;
@@ -626,6 +652,8 @@ static int ublx_af_net_connect_do(char *recv_msg)
   }
 
   printf("\n\n\n**************Start to active a new network connection context.*************\n");
+
+  timestamp();
 
   if(!is_network_connected)
   {
@@ -745,6 +773,8 @@ static int ublx_af_send_sms_do(char *recv_msg, char *num)
 
   printf("\n\n\n**************Start to send sms message to number:%s.*************\n", num);
 
+  timestamp();
+
   printf("1. Sending command : %s\n", cmd_name_set_sms);
 
   if(client_ubus_process(ubus_object, ubus_method_cmd, cmd_name_set_sms) == TRUE)
@@ -826,7 +856,7 @@ static int ublx_af_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
 
   ubus_send_reply(ctx, hreq, b.head);
 
-  ubus_complete_deferred_request(ctx, hreq, 0);
+  ubus_complete_deferred_request(ctx, hreq, 100);
 
   free(hreq);
   hreq = NULL;

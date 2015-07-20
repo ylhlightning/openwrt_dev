@@ -92,6 +92,27 @@ void ublx_add_object_at(void)
 /***************************************************************/
 /*Ubus object method handler function*/
 
+static void timestamp()
+{
+    struct timeval detail_time;
+    struct tm *Tm;
+    time_t ltime;
+
+    ltime=time(NULL);
+
+    Tm=localtime(&ltime);
+
+    gettimeofday(&detail_time,NULL);
+
+    printf("\nTimestamp: [%d:%d:%d.%d%d]\n\n",
+            Tm->tm_hour,
+            Tm->tm_min,
+            Tm->tm_sec,
+            detail_time.tv_usec /1000,  /* milliseconds */
+            detail_time.tv_usec); /* microseconds */
+}
+
+
 static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
 {
   int cmd_send_cmd_result;
@@ -101,6 +122,8 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
   int ret;
 
   printf("\n\n\n***********Command to be sent to serial port: %s****************\n", cmd);
+
+  timestamp();
 
   append_quotation_mark(cmd, num_append);
 
@@ -120,7 +143,7 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
 
   if(cmd_send_cmd_result == TRUE)
   {
-    printf("\n\n\nsend at command:%s successful.\n", cmd);
+//    printf("\n\n\nsend at command:%s successful.\n", cmd);
     strncat(client_msg, msg, strlen(msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
@@ -223,6 +246,8 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
 
   printf("\n\n\n***Command to be sent to serial port: %s with message: %s*****\n", cmd, sms_msg);
 
+  timestamp();
+
   append_quotation_mark(cmd, num_append);
 
   ret = send_sms_to_modem_with_cmd(modem_fd, cmd, sms_msg);
@@ -243,7 +268,7 @@ static int ublx_at_send_sms_do(char *recv_msg, char *cmd, char *sms_msg)
 
   if(cmd_send_sms_result == TRUE)
   {
-    printf("\n\n\n send at command:%s via sms successful.\n", cmd);
+//    printf("\n\n\n send at command:%s via sms successful.\n", cmd);
     strncat(client_msg, msg, strlen(msg));
     strncpy(recv_msg, client_msg, strlen(client_msg));
     return TRUE;
