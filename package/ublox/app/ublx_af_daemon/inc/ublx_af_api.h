@@ -39,10 +39,23 @@
 #define UBLX_AF_INVOKE_TIMEOUT 120000
 #define CIMI_NUM_LEN 128
 
+#define UBLX_AT_PATH "ublxat"
+#define UBLX_AF_PATH "ublxaf"
+
 extern struct ubus_context *ctx;
 
-void ublx_add_object_af(void);
+int ublx_add_object_af(void);
 
+static void
+ublxaf_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s,
+                   uint32_t id);
+
+static int
+ublxaf_notify(struct ubus_context *ctx, struct ubus_object *obj,
+            struct ubus_request_data *req, const char *method,
+            struct blob_attr *msg);
+
+static void ublxaf_uBussubscribeCb(struct ubus_context *ctx, struct ubus_object *obj);
 
 static int ublx_unlock_sim(struct ubus_context *ctx, struct ubus_object *obj,
           struct ubus_request_data *req, const char *method,

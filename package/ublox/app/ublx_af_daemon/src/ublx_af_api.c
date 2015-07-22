@@ -31,6 +31,7 @@
 
 static struct blob_buf b;
 static struct blob_buf b_local;
+static struct ubus_subscriber ublxaf_event;
 
 static char client_reply_msg[1024];
 static char client_cimi_num[CIMI_NUM_LEN];
@@ -84,13 +85,14 @@ static const struct ubus_method ublx_af_methods[] = {
 };
 
 static struct ubus_object_type ublx_af_object_type =
-  UBUS_OBJECT_TYPE("ublxaf", ublx_af_methods);
+  UBUS_OBJECT_TYPE(UBLX_AF_PATH, ublx_af_methods);
 
 struct ubus_object ublxaf_object = {
-  .name = "ublxaf",
+  .name = UBLX_AF_PATH,
   .type = &ublx_af_object_type,
   .methods = ublx_af_methods,
   .n_methods = ARRAY_SIZE(ublx_af_methods),
+  .subscribe_cb = ublxaf_uBussubscribeCb,
 };
 
 char *get_cimi_num(char *str)
@@ -119,9 +121,15 @@ char *get_cimi_num(char *str)
 /*Ubus object ublxaf method registration function called by server application*/
 
 
-void ublx_add_object_af(void)
+int ublx_add_object_af(void)
 {
-  int ret = ubus_add_object(ctx, &ublxaf_object);
+  uint32_t id;
+  int ret = 0;
+
+  ublxaf_event.remove_cb = ublxaf_handle_remove;
+  ublxaf_event.cb = ublxaf_notify;
+
+  ret = ubus_add_object(ctx, &ublxaf_object);
   if (ret){
     printf("Failed to add object %s: %s\n", ublxaf_object.name, ubus_strerror(ret));
   }
@@ -129,7 +137,61 @@ void ublx_add_object_af(void)
   {
     printf("Register object %s in ubusd.\n", ublxaf_object.name);
   }
+
+  ret = ubus_lookup_id(ctx, UBLX_AT_PATH, &id);
+  if (ret) {
+    printf("[%s] ubus_lookup_id error %d\n", __FUNCTION__, ret);
+    return ret;
+  }
+
+  ret = ubus_register_subscriber(ctx, &ublxaf_event);
+  if (ret) {
+    printf("[%s] ubus_register_subscriber error %d\n", __FUNCTION__, ret);
+    return ret;
+  }
+  printf("ubus_register_subscriber OK\n");
+
+  ret = ubus_subscribe(ctx, &ublxaf_event, id);
+  if (ret) {
+    printf("[%s] ubus_subscribe error %d\n", __FUNCTION__, ret);
+    ubus_unsubscribe(ctx, &ublxaf_event, id);
+    return ret;
+  }
+  printf("ubus_subscribe OK\n");
+
+  return 0;
 }
+
+static void
+ublxaf_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s,
+                   uint32_t id)
+{
+  printf("Object %08x went away....exit\n", id);
+  uloop_cancelled = true;
+  return;
+}
+
+static int
+ublxaf_notify(struct ubus_context *ctx, struct ubus_object *obj,
+            struct ubus_request_data *req, const char *method,
+            struct blob_attr *msg)
+{
+  char *str;
+
+  str = blobmsg_format_json(msg, true);
+
+  printf("Received notification '%s': %s\n", method, str);
+
+  free(str);
+
+  return 0;
+}
+
+static void ublxaf_uBussubscribeCb(struct ubus_context *ctx, struct ubus_object *obj)
+{
+  printf("ublxaf subscribers ", obj->has_subscribers?"success!\n":"fail!\n");
+}
+
 
 static void timestamp()
 {
@@ -856,7 +918,7 @@ static int ublx_af_send_sms(struct ubus_context *ctx, struct ubus_object *obj,
 
   ubus_send_reply(ctx, hreq, b.head);
 
-  ubus_complete_deferred_request(ctx, hreq, 100);
+  ubus_complete_deferred_request(ctx, hreq, 0);
 
   free(hreq);
   hreq = NULL;

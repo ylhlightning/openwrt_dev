@@ -47,7 +47,11 @@ static void server_main(void)
     exit(0);
   }
 
-  ublx_add_object_at();
+  if(ublx_add_object_at() != 0)
+  {
+    printf("Failed to initilize ubus communication....exit!!!\n");
+    exit(1);
+  }
 
   printf("AT process run in loop and wait for ubus communcation.....\n\n\n");
 

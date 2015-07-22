@@ -64,30 +64,43 @@ static const struct ubus_method ublx_at_methods[] = {
 };
 
 static struct ubus_object_type ublx_at_object_type =
-  UBUS_OBJECT_TYPE("ublxat", ublx_at_methods);
+  UBUS_OBJECT_TYPE(UBLX_AT_PATH, ublx_at_methods);
 
 struct ubus_object ublxat_object = {
-  .name = "ublxat",
+  .name = UBLX_AT_PATH,
   .type = &ublx_at_object_type,
   .methods = ublx_at_methods,
   .n_methods = ARRAY_SIZE(ublx_at_methods),
+  .subscribe_cb = ublxat_uBussubscribeCb,
 };
 
 
 /***************************************************************/
 /*Ubus object ublxat method registration function called by server application*/
 
-void ublx_add_object_at(void)
+int ublx_add_object_at(void)
 {
-  int ret = ubus_add_object(ctx, &ublxat_object);
+  uint32_t id;
+  int ret = 0;
+
+  ret = ubus_add_object(ctx, &ublxat_object);
   if (ret){
     printf("Failed to add object %s: %s\n", ublxat_object.name, ubus_strerror(ret));
   }
   else
   {
     printf("Register object %s in ubusd.\n", ublxat_object.name);
+    return ret;
   }
+
+  return 0;
 }
+
+static void ublxat_uBussubscribeCb(struct ubus_context *ctx, struct ubus_object *obj)
+{
+  printf("ublxat subscribers ", obj->has_subscribers?"success!\n":"fail!\n");
+}
+
 
 /***************************************************************/
 /*Ubus object method handler function*/

@@ -61,7 +61,7 @@ PROJECT_INCLUDEDIRS += $(TOPDIR)/package/ublox/lib/lib320u/inc \
                        inc
 
 # Library dependency
-PROJECT_LIBRARIES :=-l320u -lubox -lubus
+PROJECT_LIBRARIES :=-l320u -lubox -lubus -lblobmsg_json
 
 # CFLAGS 
 PROJECT_DEFINITIONS += \
@@ -83,7 +83,7 @@ endef
 define Package/$(PKG_NAME)
 $(call Package/$(PKG_NAME)/Default)
   TITLE += (library dependency)
-  DEPENDS:=+lib320u +librt +libubox +libubus
+  DEPENDS:=+lib320u +librt +libubox +libubus +libblobmsg-json
 endef
 
 ########################################################

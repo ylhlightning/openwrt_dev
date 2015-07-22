@@ -34,9 +34,15 @@ struct ubus_context *ctx;
 
 static void server_main(void)
 {
-  int ret;
+  int ret = 0;
 
-  ublx_add_object_af();
+  ret = ublx_add_object_af();
+
+  if(ret != 0)
+  {
+    printf("Failed to initilize ubus communication....exit!\n");
+    exit(1);
+  }
 
   printf("AF process run in loop and wait for ubus communcation.....\n\n\n");
 
@@ -72,7 +78,6 @@ int main(int argc, char **argv)
   printf("\n\n*****************************************\n");
   printf("***** Start to run ublx process AF. *****\n");
   printf("*****************************************\n\n");
-
 
   ubus_add_uloop(ctx);
 

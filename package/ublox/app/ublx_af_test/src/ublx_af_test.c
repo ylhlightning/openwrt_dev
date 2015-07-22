@@ -39,6 +39,9 @@
 
 #define UBLX_AF_INVOKE_TIMEOUT 120000
 #define MSG_LEN 1024
+#define UBLX_AF_PATH "ublxaf"
+
+static struct ubus_subscriber ublxaf_test_event;
 
 typedef int (*ublx_api_func)(uint32_t, char *, int);
 
@@ -176,6 +179,80 @@ static void string_parsing(char *string)
   str_replace(string_parsed, "\\\"\\n\"", "");
   printf("%s\n", str_ret);
 }
+
+static void
+ublxaf_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s,
+                   uint32_t id)
+{
+  printf("Object %08x went away....exit\n", id);
+
+  if(is_async_call)
+  {
+    uloop_cancelled = true;
+  }
+  else
+  {
+    exit(1);
+  }
+}
+
+static int
+ublxaf_notify(struct ubus_context *ctx, struct ubus_object *obj,
+            struct ubus_request_data *req, const char *method,
+            struct blob_attr *msg)
+{
+  char *str;
+
+  str = blobmsg_format_json(msg, true);
+
+  printf("Received notification '%s': %s\n", method, str);
+
+  free(str);
+
+  return 0;
+}
+
+int ublx_ubus_subscribe(void)
+{
+  uint32_t id;
+  int ret = 0;
+  struct ubus_context *ctx;
+  const char *ubus_socket = NULL;
+
+  ublxaf_test_event.remove_cb = ublxaf_handle_remove;
+  ublxaf_test_event.cb = ublxaf_notify;
+
+  /* send a request with ubusd. */
+  ctx = ubus_connect(ubus_socket);
+  if (!ctx) {
+    printf("Failed to connect to ubus\n");
+    return NULL;
+  }
+
+  ret = ubus_lookup_id(ctx, UBLX_AF_PATH, &id);
+  if (ret) {
+    printf("[%s] ubus_lookup_id error %d\n", __FUNCTION__, ret);
+    return ret;
+  }
+
+  ret = ubus_register_subscriber(ctx, &ublxaf_test_event);
+  if (ret) {
+    printf("[%s] ubus_register_subscriber error %d\n", __FUNCTION__, ret);
+    return ret;
+  }
+  printf("ubus_register_subscriber OK\n");
+
+  ret = ubus_subscribe(ctx, &ublxaf_test_event, id);
+  if (ret) {
+    printf("[%s] ubus_subscribe error %d\n", __FUNCTION__, ret);
+    ubus_unsubscribe(ctx, &ublxaf_test_event, id);
+    return ret;
+  }
+  printf("ubus_subscribe OK\n");
+
+  return 0;
+}
+
 
 static struct ubus_context *ubus_init(uint32_t *id, char *ubus_object, int is_async_call)
 {
@@ -492,6 +569,12 @@ int main(int argc, char *argv[])
     ublx_test_timeout = ublx_test_timeout * 1000;
   }
 
+  if(ublx_ubus_subscribe() != 0)
+  {
+    printf("ublx af process ");
+    exit(1);
+  }
+
   printf("\n\n*****************************************\n");
   printf("**** Start to run ublx process Test. ****\n");
   printf("*****************************************\n\n");
@@ -524,7 +607,7 @@ int main(int argc, char *argv[])
     {
       printf("Wait 10 seconds for next ubus call invoke: %s\n\n\n", ublx_api_table_ptr->name);
     }
-    
+
     sleep(10);
   }
 
