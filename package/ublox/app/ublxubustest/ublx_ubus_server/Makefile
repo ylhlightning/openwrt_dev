@@ -59,7 +59,7 @@ PROJECT_SOURCEFILES += src/server.c
 PROJECT_INCLUDEDIRS += inc/
 
 # Library dependency
-PROJECT_LIBRARIES :=-lubox -lubus
+PROJECT_LIBRARIES :=-lubox -lubus -lblobmsg_json
 
 # CFLAGS 
 PROJECT_DEFINITIONS +=\
@@ -81,7 +81,7 @@ endef
 define Package/$(PKG_NAME)
 $(call Package/$(PKG_NAME)/Default)
   TITLE += (library dependency)
-  DEPENDS:=+librt +libubox +libubus
+  DEPENDS:=+librt +libubox +libubus +libblobmsg-json
 endef
 
 ########################################################
