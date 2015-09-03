@@ -44,10 +44,15 @@ PROJECT_SOURCEFILES =
 PROJECT_INCLUDEDIRS =
 PROJECT_DEFINITIONS =
 PROJECT_LIBRARIES =
+PROJECT_CFLAGS =
+PROJECT_LDFLAGS =
+
 
 PKG_NAME:=$(THIS_PROJECT_NAME)
 PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
+
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 # Source files
 PROJECT_SOURCEFILES += src/helloworldcpp.cpp
@@ -59,7 +64,7 @@ PROJECT_INCLUDEDIRS += \
 PROJECT_LIBRARIES := -lstdc++
 
 # CFLAGS 
-PROJECT_DEFINITIONS += \
+PROJECT_DEFINITIONS +=
 
 # Package configuration
 define Package/$(PKG_NAME)/Default
@@ -79,7 +84,7 @@ define Package/$(PKG_NAME)
 $(call Package/$(PKG_NAME)/Default)
   TITLE += 
   DEPENDS:= +libstdcpp
-endef
+endef 
 
 ########################################################
 ########      project  processing      #################
@@ -87,23 +92,26 @@ endef
 ########################################################
 
 #process include directories
-TARGET_CPPFLAGS += $(sort $(strip $(addprefix -I,$(PROJECT_INCLUDEDIRS)  ) ) )
+PROJECT_CFLAGS += $(sort $(strip $(addprefix -I,$(PROJECT_INCLUDEDIRS)  ) ) )
 #process compiling switches / definitions
-TARGET_CPPFLAGS += $(sort $(strip $(addprefix -D,$(PROJECT_DEFINITIONS)  ) ) )
+PROJECT_CFLAGS += $(sort $(strip $(addprefix -D,$(PROJECT_DEFINITIONS)  ) ) )
+
+PROJECT_CFLAGS += -ggdb3
+
 #process library dependency.
-TARGET_LDFLAGS += $(PROJECT_LIBRARIES)
+PROJECT_LDFLAGS += $(PROJECT_LIBRARIES)
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 endef
 
 define Build/Compile
-	$(TARGET_CXX) $(TARGET_CPPFLAGS) -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) $(TARGET_LDFLAGS)
+	$(TARGET_CXX) $(PROJECT_CFLAGS) -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) $(PROJECT_LDFLAGS)
 endef
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/$(PKG_NAME)
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

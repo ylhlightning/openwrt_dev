@@ -47,10 +47,14 @@ PROJECT_SOURCEFILES =
 PROJECT_INCLUDEDIRS =
 PROJECT_DEFINITIONS =
 PROJECT_LIBRARIES =
+PROJECT_CFLAGS =
+PROJECT_LDFLAGS =
 
 PKG_NAME:=$(THIS_PROJECT_NAME)
 PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
+
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 # Source files
 PROJECT_SOURCEFILES += src/ublx_at_test.c
@@ -59,7 +63,7 @@ PROJECT_SOURCEFILES += src/ublx_at_test.c
 PROJECT_INCLUDEDIRS += \
 
 # Library dependency
-PROJECT_LIBRARIES :=-lubox -lubus -lblobmsg_json
+PROJECT_LIBRARIES :=-lrt -lubox -lubus -lblobmsg_json
 
 # CFLAGS 
 PROJECT_DEFINITIONS += \
@@ -90,23 +94,24 @@ endef
 ########################################################
 
 #process include directories
-TARGET_CFLAGS += $(sort $(strip $(addprefix -I,$(PROJECT_INCLUDEDIRS)  ) ) )
+PROJECT_CFLAGS += $(sort $(strip $(addprefix -I,$(PROJECT_INCLUDEDIRS)  ) ) )
 #process compiling switches / definitions
-TARGET_CFLAGS += $(sort $(strip $(addprefix -D,$(PROJECT_DEFINITIONS)  ) ) )
+PROJECT_CFLAGS += $(sort $(strip $(addprefix -D,$(PROJECT_DEFINITIONS)  ) ) )
 #process library dependency.
-TARGET_LDFLAGS += $(PROJECT_LIBRARIES)
+PROJECT_LDFLAGS += $(PROJECT_LIBRARIES)
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) -r ./* $(PKG_BUILD_DIR)/
 endef
 
 define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) -lrt $(TARGET_LDFLAGS)
+	$(TARGET_CC) $(PROJECT_CFLAGS) -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) $(PROJECT_LDFLAGS)
 endef
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/$(PKG_NAME)
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

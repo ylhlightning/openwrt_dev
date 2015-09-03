@@ -42,7 +42,7 @@ define Build/Prepare
 endef
 
 define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_LDFLAGS) -o $(PKG_BUILD_DIR)/ublxatcmd ublxatcmd.c 
+	$(TARGET_CC) $(TARGET_CFLAGS) $(TARGET_LDFLAGS) -g -o $(PKG_BUILD_DIR)/ublxatcmd ublxatcmd.c 
 endef
 
 define Package/ublxatcmd/install

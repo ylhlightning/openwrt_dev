@@ -45,11 +45,15 @@ include $(INCLUDE_DIR)/package.mk
 COMPONENT_SOURCEFILES =
 COMPONENT_INCLUDEDIRS =
 COMPONENT_DEFINITIONS =
+COMPONENT_CFLAGS =
+COMPONENT_LDFLAGS =
 
 PKG_NAME:=$(THIS_COMPONENT_NAME)
 PKG_RELEASE:=1
 PKG_USE_MIPS16:=0
 PKG_BUILD_PARALLEL:=1
+
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 #source files
 COMPONENT_SOURCEFILES += src/lib320u.c
@@ -84,18 +88,17 @@ endef
 COMPONENT_OBJ :=  $(patsubst %.c,%.o,$(COMPONENT_SOURCEFILES)) 
 
 #process include directories
-TARGET_CFLAGS += $(sort $(strip $(addprefix -I,$(COMPONENT_INCLUDEDIRS)  ) ) )
+COMPONENT_CFLAGS += $(sort $(strip $(addprefix -I,$(COMPONENT_INCLUDEDIRS)  ) ) )
 #process compiling switches / definitions
-TARGET_CFLAGS += $(sort $(strip $(addprefix -D,$(COMPONENT_DEFINITIONS)  ) ) )
-#process library dependency.
-TARGET_LDFLAGS += $(PROJECT_LIBRARIES)
+COMPONENT_CFLAGS += $(sort $(strip $(addprefix -D,$(COMPONENT_DEFINITIONS)  ) ) )
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	$(TARGET_CC) $(TARGET_CFLAGS) -c $(COMPONENT_SOURCEFILES) -o $(COMPONENT_OBJ) $(TARGET_LDFLAGS)
+	$(CP) -r ./* $(PKG_BUILD_DIR)/
 endef
 
 define Build/Compile
+	$(TARGET_CC) $(COMPONENT_CFLAGS) -c $(COMPONENT_SOURCEFILES) -o $(COMPONENT_OBJ) $(COMPONENT_LDFLAGS)
 	$(TARGET_AR) cru $(PKG_BUILD_DIR)/$(PKG_NAME).a $(COMPONENT_OBJ)
 	$(TARGET_RANLIB) $(PKG_BUILD_DIR)/$(PKG_NAME).a
 endef

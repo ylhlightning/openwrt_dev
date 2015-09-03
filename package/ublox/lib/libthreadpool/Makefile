@@ -45,6 +45,8 @@ include $(INCLUDE_DIR)/package.mk
 COMPONENT_SOURCEFILES =
 COMPONENT_INCLUDEDIRS =
 COMPONENT_DEFINITIONS =
+COMPONENT_CFLAGS =
+COMPONENT_LDFLAGS =
 
 PKG_NAME:=$(THIS_COMPONENT_NAME)
 PKG_RELEASE:=1
@@ -60,6 +62,7 @@ COMPONENT_INCLUDEDIRS += inc
 # Definitions 
 COMPONENT_DEFINITIONS += \
 
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 # Library dependency
 COMPONENT_LIBRARIES :=
@@ -84,30 +87,31 @@ endef
 COMPONENT_OBJ :=  $(patsubst %.c,%.o,$(COMPONENT_SOURCEFILES)) 
 
 #process include directories
-TARGET_CFLAGS += $(sort $(strip $(addprefix -I,$(COMPONENT_INCLUDEDIRS)  ) ) )
+COMPONENT_CFLAGS += $(sort $(strip $(addprefix -I,$(COMPONENT_INCLUDEDIRS)  ) ) )
 #process compiling switches / definitions
-TARGET_CFLAGS += $(sort $(strip $(addprefix -D,$(COMPONENT_DEFINITIONS)  ) ) )
+COMPONENT_CFLAGS += $(sort $(strip $(addprefix -D,$(COMPONENT_DEFINITIONS)  ) ) )
 #process library dependency.
-TARGET_LDFLAGS += $(PROJECT_LIBRARIES)
+COMPONENT_LDFLAGS += $(PROJECT_LIBRARIES)
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	$(TARGET_CC) $(TARGET_CFLAGS) -c $(COMPONENT_SOURCEFILES) -o $(COMPONENT_OBJ) $(TARGET_LDFLAGS)
+	$(CP) -r ./* $(PKG_BUILD_DIR)/
 endef
 
 define Build/Compile
+	$(TARGET_CC) $(COMPONENT_CFLAGS) -c $(COMPONENT_SOURCEFILES) -o $(COMPONENT_OBJ) $(COMPONENT_LDFLAGS)
 	$(TARGET_AR) cru $(PKG_BUILD_DIR)/$(PKG_NAME).a $(COMPONENT_OBJ)
 	$(TARGET_RANLIB) $(PKG_BUILD_DIR)/$(PKG_NAME).a
 endef
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/$(PKG_NAME).a $(1)/usr/lib
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME).a $(1)/usr/lib
 endef
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/$(PKG_NAME).a $(1)/usr/lib
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME).a $(1)/usr/lib
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
