@@ -27,3 +27,5 @@ git-src
 openwrt_github.*
 cscope.*
 client_tester
+target/linux/brcm2708/config-3.18_backup
+
