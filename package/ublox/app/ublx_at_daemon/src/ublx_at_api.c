@@ -31,6 +31,12 @@
 
 static struct blob_buf b;
 
+typedef struct at_cmd
+{
+  char cmd_name[CMD_MSG_LEN];
+  char recv_msg[CMD_MSG_LEN];
+}at_cmd_t;
+
 /***************************************************************/
 /*Ubus object policy configuration*/
 
@@ -126,7 +132,7 @@ static void timestamp()
 }
 
 
-static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
+static int ublx_at_send_cmd_do(at_cmd_t *at_cmd)
 {
   int cmd_send_cmd_result;
   char num_append[20];
@@ -134,13 +140,13 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
   char client_msg[CMD_MSG_MAX_LEN] = "Send cmd:";
   int ret;
 
-  printf("\n\n\n***********Command to be sent to serial port: %s****************\n", cmd);
+  printf("\n\n\n***********Command to be sent to serial port: %s****************\n", at_cmd->cmd_name);
 
   timestamp();
 
-  append_quotation_mark(cmd, num_append);
+  append_quotation_mark(at_cmd->cmd_name, num_append);
 
-  ret = send_cmd_to_modem(modem_fd, cmd);
+  ret = send_cmd_to_modem(modem_fd, at_cmd->cmd_name);
   if(ret < 0)
   {
      printf("Failed to send command to modem\n");
@@ -156,16 +162,17 @@ static int ublx_at_send_cmd_do(char *recv_msg, char *cmd)
 
   if(cmd_send_cmd_result == TRUE)
   {
-//    printf("\n\n\nsend at command:%s successful.\n", cmd);
+    //printf("\n\n\nsend at command:%s successful.\n", at_cmd->cmd_name);
     strncat(client_msg, msg, strlen(msg));
-    strncpy(recv_msg, client_msg, strlen(client_msg));
+    strncpy(at_cmd->recv_msg, client_msg, strlen(client_msg));
+    //printf("\n\n\n recv_msg:%s length:%d.\n", at_cmd->recv_msg, strlen(at_cmd->recv_msg));
     return TRUE;
   }
   else
   {
     printf("\n\n\nsend at command failed.\n");
     strncat(client_msg, MSG_ERROR, strlen(MSG_ERROR));
-    strncpy(recv_msg, client_msg, strlen(client_msg));
+    strncpy(at_cmd->recv_msg, client_msg, strlen(client_msg));
     return FALSE;
   }
 }
@@ -176,8 +183,8 @@ static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
 {
   struct blob_attr *tb[__UBLX_SEND_SMS_MAX];
   const char *format = "%s received a message: %s";
-  char data[CMD_MSG_LEN];
-  char *msgstr = data;
+  int rc;
+  at_cmd_t at_cmd;
 
   int reply_msg_len = CMD_MSG_LEN + strlen(format) + strlen(obj->name);
 
@@ -189,7 +196,7 @@ static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
 
   memset(reply_msg, '\0', reply_msg_len);
 
-  memset(msgstr, '\0', CMD_MSG_LEN);
+  memset(&at_cmd, 0, sizeof(at_cmd_t));
 
   blobmsg_parse(ublx_at_send_cmd_policy, __UBLX_SEND_CMD_MAX, tb, blob_data(msg), blob_len(msg));
 
@@ -198,12 +205,20 @@ static int ublx_at_send_cmd(struct ubus_context *ctx, struct ubus_object *obj,
     return UBUS_STATUS_INVALID_ARGUMENT;
   }
 
-  if(ublx_at_send_cmd_do(msgstr, blobmsg_data(tb[UBLX_SEND_CMD_STR])) == FALSE)
+  strncpy(at_cmd.cmd_name, blobmsg_data(tb[UBLX_SEND_CMD_STR]), strlen(blobmsg_data(tb[UBLX_SEND_CMD_STR])));
+
+  rc = ublx_at_send_cmd_do(&at_cmd);
+
+  if(rc == FALSE)
   {
     printf("ublx at send cmd failed.\n");
   }
+  else
+  {
+    printf("ublx at send cmd %s successful.\n", at_cmd.recv_msg);
+  }
 
-  sprintf(reply_msg, format, obj->name, msgstr);
+  sprintf(reply_msg, format, obj->name, at_cmd.recv_msg);
 
   ubus_defer_request(ctx, req, hreq);
 
