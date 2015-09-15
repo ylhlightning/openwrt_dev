@@ -1,0 +1,525 @@
+#!/bin/bash
+#we are using GNU Bash shell
+set -eu
+
+LOCALSTATEDIR="/var"
+LXC_HOOK_DIR="/usr/share/lxc/hooks"
+LXC_TEMPLATE_CONFIG="/usr/share/lxc/config"
+
+# Defaults
+LXC_MAPPED_GID=
+LXC_MAPPED_UID=
+LXC_NAME=
+LXC_PATH=
+LXC_ROOTFS=
+
+# Load LXC defaults
+if [ -r /etc/default/lxc ]; then
+    . /etc/default/lxc
+fi
+
+change_root_passwd() {
+    ROOTDIR=$1
+
+    # passwd exec must be setuid
+#    ln $ROOTDIR/bin/busybox $ROOTDIR/bin/passwd #PGE next line gives error
+    chmod +s $ROOTDIR/bin/passwd
+
+    touch $ROOTDIR/etc/shadow
+
+    # setting passwd for root
+    CHPASSWD_FILE=$ROOTDIR/root/chpasswd.sh
+
+    cat <<EOF >$CHPASSWD_FILE
+echo "setting root password to \"root\""
+
+mount -n --bind /lib $ROOTDIR/lib
+if [ \$? -ne 0 ]; then
+    echo "Failed bind-mounting /lib at $ROOTDIR/lib"
+    exit 1
+fi
+
+chroot $ROOTDIR chpasswd <<EOFF 2>/dev/null
+root:root
+EOFF
+
+if [ \$? -ne 0 ]; then
+    echo "Failed to change root password"
+    exit 1
+fi
+
+umount $ROOTDIR/lib
+EOF
+
+    lxc-unshare -s MOUNT -- /bin/sh < $CHPASSWD_FILE
+    rm $CHPASSWD_FILE
+}
+
+install() {
+    DLDIR=/tmp/download
+    DPKGDIR=/var/lib/dpkg
+    ROOTDIR=$1
+
+    # Create package download directory
+    rm -rf $DLDIR
+    mkdir -p $DLDIR
+    # Create fake dpkg status directory
+    rm -rf $DPKGDIR
+    mkdir -p $DPKGDIR
+    mkdir -p $DPKGDIR/updates
+    mkdir -p $DPKGDIR/info
+    echo  -n "" >$DPKGDIR/status
+    echo  -n "" >$DPKGDIR/available
+
+    # Create VE root directory
+    mkdir -p $ROOTDIR
+
+    # Download packages
+#    pushd $DLDIR >/dev/null
+#    apt-get download busybox-static
+#    popd >/dev/null
+
+#    cp /root/busybox-static*.deb $DLDIR
+
+#		cp /bin/busybox /bin/busybox.openwrt
+    # Install the packages in the VE root
+#    dpkg -i --instdir=$ROOTDIR --admindir=$DPKGDIR $DLDIR/busybox-static*.deb
+#    dpkg -i $DLDIR/busybox-static*.deb
+
+		mkdir -p $ROOTDIR/bin
+#		cp /bin/busybox $ROOTDIR/bin
+#		mv /bin/busybox.openwrt /bin/busybox
+
+##		wget http://busybox.net/downloads/binaries/latest/busybox-i686 -O $ROOTDIR/bin/busybox
+##		wget http://busybox.net/downloads/binaries/latest/busybox-armv7l -O $ROOTDIR/bin/busybox
+		cp ~/busybox-armv7l $ROOTDIR/bin/busybox
+##		wget http://busybox.net/downloads/binaries/latest/busybox-armv6l -O $ROOTDIR/bin/busybox
+##		cp ~/busybox-armv6l $ROOTDIR/bin/busybox
+		chmod +x $ROOTDIR/bin/busybox
+		
+##		cp ~/dhry $ROOTDIR/bin/dhry-sgud
+##		chmod +x $ROOTDIR/bin/dhry-sgud
+
+    # Create /dev, /proc and /sys
+    mkdir -p $ROOTDIR/etc
+    mkdir -p $ROOTDIR/etc/init.d
+    mkdir -p $ROOTDIR/dev
+    mkdir -p $ROOTDIR/dev/shm
+    mkdir -p $ROOTDIR/dev/pts
+    mkdir -p $ROOTDIR/proc
+    mkdir -p $ROOTDIR/sys
+
+	    mkdir -p $ROOTDIR/etc/config
+		mkdir -p $ROOTDIR/root
+		mkdir -p $ROOTDIR/lib
+		mkdir -p $ROOTDIR/usr
+		mkdir -p $ROOTDIR/usr/lib
+		mkdir -p $ROOTDIR/usr/bin
+		mkdir -p $ROOTDIR/usr/sbin
+		mkdir -p $ROOTDIR/usr/share/udhcpc
+		mkdir -p $ROOTDIR/tmp
+		mkdir -p $ROOTDIR/mnt
+		mkdir -p $ROOTDIR/var
+		mkdir -p $ROOTDIR/var/log
+		mkdir -p $ROOTDIR/var/run
+		mkdir -p $ROOTDIR/var/spool/cron/crontabs
+												
+    # Busybox can run as an init binary, use it
+    mkdir -p $ROOTDIR/sbin
+	
+	cp /sbin/uci $ROOTDIR/sbin/uci
+#############################################
+    pushd $ROOTDIR/bin > /dev/null || return 1
+    ./busybox --help | grep 'Currently defined functions:' -A300 | \
+      grep -v 'Currently defined functions:' | tr , '\n' | \
+      xargs -n1 ln -s busybox | true
+    popd > /dev/null
+#############################################
+    ln $ROOTDIR/bin/busybox $ROOTDIR/sbin/init
+    ln $ROOTDIR/bin/busybox $ROOTDIR/sbin/getty
+
+    chmod +x $ROOTDIR/sbin/init
+
+    # Create a symlink so the console actually works
+#PGE using above global symlink   ln $ROOTDIR/bin/static-sh $ROOTDIR/bin/sh
+
+    # Create minimum required device nodes in /dev
+    mknod $ROOTDIR/dev/null c 1 3
+    mknod $ROOTDIR/dev/zero c 1 5
+    mknod $ROOTDIR/dev/tty c 5 0
+    mknod $ROOTDIR/dev/console c 5 1
+    mknod $ROOTDIR/dev/ptmx c 5 2
+    mknod $ROOTDIR/dev/tty0 c 4 0
+    mknod $ROOTDIR/dev/tty1 c 4 0
+    mknod $ROOTDIR/dev/tty5 c 4 0
+    mknod $ROOTDIR/dev/random c 1 8
+    mknod $ROOTDIR/dev/urandom c 1 9
+    mknod $ROOTDIR/dev/ram0 b 1 0
+    chmod 666 $ROOTDIR/dev/tty $ROOTDIR/dev/console $ROOTDIR/dev/ptmx $ROOTDIR/dev/ram0 $ROOTDIR/dev/tty0 $ROOTDIR/dev/null
+
+    # Alternatively we could install udev in the VE
+
+    # Set up /etc/passwd so we have users
+    cat <<EOF >> $ROOTDIR/etc/passwd
+root:x:0:0:root:/root:/bin/sh
+EOF
+    # Set up /etc/group so we have users
+    cat <<EOF >> $ROOTDIR/etc/group
+root:x:0:root
+EOF
+
+    # Create the rcS file which would be the startup script
+    cat <<EOF >> $ROOTDIR/etc/init.d/rcS
+#!/bin/sh
+/bin/syslogd
+/bin/mount -a
+/bin/udhcpc
+/bin/crond -b
+echo "This is the lxc busybox init script!"
+#configure buildroot rootfs environment.
+mkdir -p /mnt/rootfs
+mount -t nfs -o port=2049,nolock,proto=tcp 192.168.1.161:/home/swadmin/workspace/rootfs /mnt/rootfs
+mount /var/run /mnt/rootfs/var/run
+mount -t proc /proc /mnt/rootfs/proc
+mount -t sysfs /sys /mnt/rootfs/sys
+mount -o bind /dev /mnt/rootfs/dev
+
+EOF
+    chmod 744 $ROOTDIR/etc/init.d/rcS || return 1
+
+    # Create the fstab file (inside container)!
+    cat <<EOF >> $ROOTDIR/etc/fstab
+proc   /proc      proc    defaults     0      0
+shm    /dev/shm   tmpfs   defaults     0      0
+cgroup /sys/fs/cgroup cgroup defaults  0      0
+
+EOF
+
+    # Create inittab which busybox can run
+    cat <<EOF >> $ROOTDIR/etc/inittab
+::sysinit:/etc/init.d/rcS
+
+tty1::askfirst:-/bin/sh
+EOF
+    chmod 644 $ROOTDIR/etc/inittab || return 1 
+
+    cat <<EOF >> $ROOTDIR/usr/share/udhcpc/default.script
+#!/bin/sh
+case "\$1" in
+    deconfig)
+        ip addr flush dev \$interface
+        ;;
+
+    renew|bound)
+        # flush all the routes
+        if [ -n "\$router" ]; then
+            ip route del default 2> /dev/null
+        fi
+
+        # check broadcast
+        if [ -n "\$broadcast" ]; then
+            broadcast="broadcast \$broadcast"
+        fi
+
+        # add a new ip address
+        ip addr add \$ip/\$mask \$broadcast dev \$interface
+
+        if [ -n "\$router" ]; then
+            ip route add default via \$router dev \$interface
+        fi
+
+        [ -n "\$domain" ] && echo search \$domain > /etc/resolv.conf
+        for i in \$dns ; do
+            echo nameserver \$i >> /etc/resolv.conf
+        done
+        ;;
+esac
+exit 0
+EOF
+
+    chmod 744 $ROOTDIR/usr/share/udhcpc/default.script
+
+#PGE not working    change_root_passwd $ROOTDIR 
+
+# add ssh functionality if dropbear package available on host
+    which dropbear >/dev/null 2>&1
+
+    if [ $? -eq 0 ]; then
+        # copy dropbear binary
+        cp $(which dropbear) $ROOTDIR/usr/sbin
+        if [ $? -ne 0 ]; then
+            echo "Failed to copy dropbear in the rootfs"
+            return 1
+        fi
+				chmod +x $ROOTDIR/usr/sbin/dropbear
+
+        # make symlinks to various ssh utilities
+        utils="\
+            $ROOTDIR/usr/bin/dbclient \
+            $ROOTDIR/usr/bin/scp \
+            $ROOTDIR/usr/bin/ssh \
+            $ROOTDIR/usr/sbin/dropbearkey \
+            $ROOTDIR/usr/sbin/dropbearconvert \
+        "
+        echo $utils | xargs -n1 ln -s /usr/sbin/dropbear
+
+        # add necessary config files
+        mkdir $ROOTDIR/etc/dropbear
+        dropbearkey -t rsa -f $ROOTDIR/etc/dropbear/dropbear_rsa_host_key > /dev/null 2>&1
+        dropbearkey -t dss -f $ROOTDIR/etc/dropbear/dropbear_dss_host_key > /dev/null 2>&1
+
+    echo "'dropbear' ssh utility installed"
+    fi
+	
+}
+
+configure() {
+    ROOTDIR=$2
+    NAME=$3
+    PATH=$1
+    TTYDIR=
+
+    /bin/sed -i s/"lxc.network.type = empty"/"lxc.network.type = veth"/g $PATH/config
+
+    # if there is exactly one veth network entry, make sure it has an associated hwaddr.
+    nics=`/bin/grep -e '^lxc\.network\.type[ \t]*=[ \t]*veth' $PATH/config | /usr/bin/wc -l`
+    if [ $nics -eq 1 ]; then
+        /bin/grep -q "^lxc.network.hwaddr" $PATH/config || /bin/cat <<EOF >> $PATH/config
+lxc.network.hwaddr = 00:16:3e:$(/usr/bin/openssl rand -hex 3| /bin/sed 's/\(..\)/\1:/g; s/.$//')
+EOF
+    fi
+
+    /bin/cat <<EOF >> $PATH/config
+lxc.network.flags = up
+lxc.network.link = br-lan
+lxc.network.veth.pair = veth0
+lxc.network.name = eth0
+lxc.network.ipv4 = 0.0.0.0/24
+
+lxc.utsname = $NAME
+
+lxc.devttydir =
+lxc.tty = 1
+lxc.pts = 1024
+#PGE avoid duplicate lxc.rootfs = $ROOTDIR
+lxc.autodev = 1
+#?? lxc.mount.entry = /sys/kernel/security sys/kernel/security none ro,bind,optional 0 0
+lxc.mount.entry = shm dev/shm tmpfs size=65536,nosuid,nodev,noexec,create=dir 0 0
+#? lxc.mount.auto = proc:mixed sys
+lxc.mount.auto = cgroup
+lxc.mount  = $PATH/fstab
+EOF
+
+    libdirs="\
+        lib \
+        usr/lib \
+		etc/config "
+
+    for dir in $libdirs; do
+        if [ -d "/$dir" ] && [ -d "$ROOTDIR/$dir" ]; then
+            echo "lxc.mount.entry = /$dir $dir none ro,bind,create=dir 0 0" >> $PATH/config
+        fi
+    done
+
+    /bin/cat <<EOF >> $PATH/config
+lxc.cap.drop = sys_module mac_admin mac_override
+lxc.pivotdir = lxc_putold
+
+lxc.hook.pre-start = $PATH/pre-start.sh
+lxc.hook.post-stop = $PATH/post-stop.sh
+
+# uncomment the next line to run the container unconfined:
+#lxc.aa_profile = unconfined
+
+lxc.cgroup.devices.deny = a
+# Allow any mknod (but not using the node)
+lxc.cgroup.devices.allow = c *:* m
+lxc.cgroup.devices.allow = b *:* m
+# /dev/null and zero
+lxc.cgroup.devices.allow = c 1:3 rwm
+lxc.cgroup.devices.allow = c 1:5 rwm
+# consoles
+lxc.cgroup.devices.allow = c 5:2 rwm
+lxc.cgroup.devices.allow = c 5:1 rwm
+lxc.cgroup.devices.allow = c 5:0 rwm
+lxc.cgroup.devices.allow = c 4:0 rwm
+#lxc.cgroup.devices.allow = c 4:1 rwm
+# /dev/{,u}random
+lxc.cgroup.devices.allow = c 1:9 rwm
+lxc.cgroup.devices.allow = c 1:8 rwm
+lxc.cgroup.devices.allow = c 136:* rwm
+lxc.cgroup.devices.allow = c 5:2 rwm
+# rtc
+lxc.cgroup.devices.allow = c 254:0 rwm
+# fuse
+lxc.cgroup.devices.allow = c 10:229 rwm
+# tun
+lxc.cgroup.devices.allow = c 10:200 rwm
+# full
+lxc.cgroup.devices.allow = c 1:7 rwm
+# hpet
+lxc.cgroup.devices.allow = c 10:228 rwm
+# kvm
+lxc.cgroup.devices.allow = c 10:232 rwm
+
+#Autostart section
+lxc.start.auto = 1
+lxc.group = onboot
+EOF
+
+    /bin/cat <<EOF > $PATH/fstab
+proc    proc           proc   nodev,noexec,nosuid 0 0
+sysfs   sys            sysfs  defaults 0 0
+/var/run	var/run none bind,create=dir
+EOF
+
+#    for dev in tty console tty0 tty1 tty5 ram0 null urandom; do
+#        /bin/touch $ROOTDIR/dev/$dev
+#        echo "/dev/$dev dev/$dev    none bind 0 0" >> $PATH/fstab
+#    done
+
+
+    if [ $? -ne 0 ]; then
+        /bin/echo "Failed to add configuration"
+        return 1
+    fi
+}
+
+create_additional_files() {
+    ROOTDIR=$2
+    PATH=$1
+
+    /bin/cat <<EOF > $PATH/pre-start.sh
+#!/bin/sh
+echo "arguments: \$*" > /tmp/lxc-hooks
+echo "environment:" >> /tmp/lxc-hooks
+env | grep LXC >> /tmp/lxc-hooks
+/bin/mount -t cgroup cgroup /sys/fs/cgroup
+exit 0
+EOF
+		/bin/chmod +x $PATH/pre-start.sh 
+
+    /bin/cat <<EOF > $PATH/post-stop.sh
+#!/bin/sh
+echo "arguments: \$*" >> /tmp/lxc-hooks
+echo "environment:" >> /tmp/lxc-hooks
+env | grep LXC >> /tmp/lxc-hooks
+/bin/umount /sys/fs/cgroup
+exit 0
+EOF
+		/bin/chmod +x $PATH/post-stop.sh 
+
+    /bin/cat <<EOF > $ROOTDIR/etc/banner
+ ----------------------
+     U-BLOX AQ-APP
+ ----------------------
+EOF
+
+    /bin/cat <<EOF > $ROOTDIR/etc/profile
+#!/bin/sh
+STARTCOLOR="\\e[0;37m"
+ENDCOLOT="\\e[0m"
+[ -f /etc/banner ] && cat /etc/banner
+export HOME=\$(grep -e "^\${USER:-root}:" /etc/passwd | cut -d ":" -f 6)
+export HOME=\${HOME:-/root}
+export PS1="\$STARTCOLOR\\h:\\w\> \$ENDCOLOR"
+export AQAPP=1
+
+[ -x /bin/more ] || alias more=less
+[ -x /bin/ls ] && alias ll='ls -la --color=always'
+
+[ -z "\$KSH_VERSION" -o \! -s /etc/mkshrc ] || . /etc/mkshrc
+
+[ -x /usr/bin/arp ] || arp() { cat /proc/net/arp; }
+[ -x /usr/bin/ldd ] || ldd() { LD_TRACE_LOADED_OBJECTS=1 \$*; }
+
+
+chroot /mnt/rootfs
+EOF
+}
+
+usage() {
+    cat <<EOF
+{LXC-PGE} $1 -h|--help -p|--path=<path>	
+EOF
+    return 0
+}
+
+options=$(getopt -o hp:n: -l help,rootfs:,path:,name:,mapped-uid:,mapped-gid: -- "$@")
+if [ $? -ne 0 ]; then
+    usage $(basename $0)
+    exit 1
+fi
+eval set -- "$options"
+
+while true
+do
+    case "$1" in
+        -h|--help)      usage $0 && exit 0;;
+        -p|--path)      path=$2; shift 2;;
+        --rootfs)       LXC_ROOTFS=$2; shift 2;;
+        -n|--name)      name=$2; shift 2;;
+        --mapped-uid)   LXC_MAPPED_UID=$2; shift 2;;
+        --mapped-gid)   LXC_MAPPED_GID=$2; shift 2;;
+        --)             shift 1; break ;;
+        *)              break ;;
+    esac
+done
+
+# Check for required binaries
+for bin in tar xz wget; do
+    if ! type $bin >/dev/null 2>&1; then
+        echo "ERROR: Missing required tool: $bin" 1>&2
+        exit 1
+    fi
+done
+
+
+# Check that we have all variables we need
+##if [ -z "$LXC_NAME" ] || [ -z "$LXC_PATH" ] || [ -z "$LXC_ROOTFS" ]; then
+##    if [ "$DOWNLOAD_LIST_IMAGES" != "true" ]; then
+##        echo "ERROR: Not running through LXC." 1>&2
+##        exit 1
+##    fi
+##fi
+
+if [ "$(id -u)" != "0" ]; then
+    echo "This script should be run as 'root'"
+    exit 1
+fi
+
+if [ -z "$path" ]; then
+    echo "'path' parameter is required"
+    exit 1
+fi
+
+# detect rootfs
+config="$path/config"
+if [ -z "$LXC_ROOTFS" ]; then
+    if grep -q '^lxc.rootfs' $config 2>/dev/null ; then
+        LXC_ROOTFS=$(awk -F= '/^lxc.rootfs =/{ print $2 }' $config)
+    else
+        LXC_ROOTFS=$path/rootfs
+    fi
+fi
+
+echo $path $LXC_ROOTFS $name
+echo "install()"
+install $LXC_ROOTFS
+if [ $? -ne 0 ]; then
+    echo "failed to install busybox's rootfs"
+    exit 1
+fi
+
+echo "configure()"
+configure $path $LXC_ROOTFS $name
+
+if [ $? -ne 0 ]; then
+    echo "failed to configure busybox template"
+    exit 1
+fi
+
+echo "create_additional_files()"  
+create_additional_files $path $LXC_ROOTFS
+
+exit 0
