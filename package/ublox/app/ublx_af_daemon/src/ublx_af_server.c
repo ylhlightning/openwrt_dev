@@ -54,11 +54,17 @@ int main(int argc, char **argv)
   const char *ubus_socket = NULL;
   int ch;
 
-  while ((ch = getopt(argc, argv, "cs:")) != -1) {
+  while ((ch = getopt(argc, argv, "chs:")) != -1) {
     switch (ch) {
     case 's':
       ubus_socket = optarg;
       break;
+    case 'h':
+      printf("AT process parameters: \n");
+      printf("-s: ubus socket domain name.\n");
+      printf("    -openwrt ubus socket domain name: /var/run/ubus.sock\n");
+      printf("    -ublox ubus socket domain name:   /var/run/ublox.sock\n");
+      exit(0);
     default:
       break;
     }

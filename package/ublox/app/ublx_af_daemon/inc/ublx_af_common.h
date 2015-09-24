@@ -30,7 +30,6 @@
 #ifndef __UBLX_AT_COMMON__
 #define __UBLX_AT_COMMON__
 
-#define MODEM_PORT_NAME "/dev/ttyUSB3"
 #define MSG_OK "OK"
 #define MSG_ERROR "ERROR"
 

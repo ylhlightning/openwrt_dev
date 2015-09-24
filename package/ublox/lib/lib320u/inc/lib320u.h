@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <termios.h>
 #include <unistd.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -24,6 +25,8 @@
 #define USB_BUFFER 1024
 #define CRTL_Z 26
 #define WAIT_MODEM_ANSWER_MAX_TIMEOUT 120
+
+#define AT_SEND_SMS_CMD "AT+CMGS="
 
 #define TRUE 0
 #define FALSE -1
@@ -77,7 +80,7 @@ int send_cmd_to_modem(int fd, char *cmd_name);
  *
  * @return @type int              [out] boolean value.
  *         @value 0               Success
- *         @value 1               Fail
+ *         @value -1               Fail
  *
  */
 
@@ -97,17 +100,32 @@ int send_sms_to_modem_with_cmd(int fd, char *cmd_name, char *sms_msg);
  * 
  * @return @type int              [out] boolean value.
  *         @value 0               Success
- *         @value 1               Fail           
+ *         @value -1               Fail           
  *
  */
 
 int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg);
 
 
+/*
+ * @Function name: at_send_cmd
+ *
+ * @Description: end command to serial modem and receive modem message.
+ *   
+ * @param    char *modem_port_name  [in]   Modem device name.
+ * @param    char *cmd_name         [in]   AT command name.
+ * @param    *modem_reply_msg       [in]   Modem reply message.
+ *
+
+ * 
+ * @return @type int                [out] boolean value.
+ *         @value 0                 Success
+ *         @value -1                 Fail           
+ *
+ */
 
 
-
-
+int at_send_cmd(char *modem_port_name, char *cmd_name, char *modem_reply_msg);
 
 
 
@@ -122,7 +140,7 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg);
  * 
  * @return @type int              [out] boolean value.
  *         @value 0               Success
- *         @value 1               Fail           
+ *         @value -1               Fail           
  *
  */
 

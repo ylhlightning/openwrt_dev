@@ -40,6 +40,7 @@
 #define UBLX_AF_INVOKE_TIMEOUT 120000
 #define MSG_LEN 1024
 #define UBLX_AF_PATH "ublxaf"
+#define DEFAULT_PIN "1605";
 
 static struct ubus_subscriber ublxaf_test_event;
 
@@ -53,9 +54,9 @@ typedef struct ublx_api
 
 static struct blob_buf b;
 static int is_async_call = 0;
-static char *pin = "9754";
 static char *num = "3920635677";
 static char *ubus_object = "ublxaf";
+static char *pin = NULL;
 static int ublx_test_timeout = 0;
 
 static int ublx_unlock_sim(uint32_t id, char *ubus_method, int is_async_call);
@@ -212,12 +213,11 @@ ublxaf_notify(struct ubus_context *ctx, struct ubus_object *obj,
   return 0;
 }
 
-int ublx_ubus_subscribe(void)
+static int ublx_ubus_subscribe(char *ubus_socket)
 {
   uint32_t id;
   int ret = 0;
   struct ubus_context *ctx;
-  const char *ubus_socket = NULL;
 
   ublxaf_test_event.remove_cb = ublxaf_handle_remove;
   ublxaf_test_event.cb = ublxaf_notify;
@@ -226,7 +226,7 @@ int ublx_ubus_subscribe(void)
   ctx = ubus_connect(ubus_socket);
   if (!ctx) {
     printf("Failed to connect to ubus\n");
-    return NULL;
+    return 1;
   }
 
   ret = ubus_lookup_id(ctx, UBLX_AF_PATH, &id);
@@ -540,15 +540,22 @@ int main(int argc, char *argv[])
   int ret;
   int ch;
   int i;
-  char *name;
+  char *name = NULL;
+  char *ubus_sock = NULL;
 
-  while ((ch = getopt(argc, argv, "hat:")) != -1) {
+  while ((ch = getopt(argc, argv, "hat:s:p:")) != -1) {
     switch (ch) {
     case 'a':
       is_async_call = 1;
       break;
     case 't':
       ublx_test_timeout = atoi(optarg);
+      break;
+    case 'p':
+      pin = optarg;
+      break;
+    case 's':
+      ubus_sock = optarg;
       break;
     case 'h':
       printf("Please specify the parameters.\n");
@@ -569,9 +576,14 @@ int main(int argc, char *argv[])
     ublx_test_timeout = ublx_test_timeout * 1000;
   }
 
-  if(ublx_ubus_subscribe() != 0)
+  if(!pin)
   {
-    printf("ublx af process ");
+    pin = DEFAULT_PIN;
+  }
+
+  if(ublx_ubus_subscribe(ubus_sock) != 0)
+  {
+    printf("ublx af process ubus subscription error.\n");
     exit(1);
   }
 

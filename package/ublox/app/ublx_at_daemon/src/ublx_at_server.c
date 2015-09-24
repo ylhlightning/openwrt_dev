@@ -32,7 +32,7 @@
 
 struct ubus_context *ctx;
 
-static void server_main(void)
+static void server_main(char *modem_name)
 {
   int ret;
 
@@ -40,7 +40,7 @@ static void server_main(void)
   printf("***** Start to run ublx process AT. *****\n");
   printf("*****************************************\n\n");
 
-  modem_fd = open_modem(MODEM_PORT_NAME);
+  modem_fd = open_modem(modem_name);
   if(modem_fd < 0)
   {
     printf("Failed to open the modem\n");
@@ -61,13 +61,26 @@ static void server_main(void)
 int main(int argc, char **argv)
 {
   const char *ubus_socket = NULL;
+  const char *modem_name = NULL;
   int ch;
 
-  while ((ch = getopt(argc, argv, "cs:")) != -1) {
+  while ((ch = getopt(argc, argv, "cs:p:")) != -1) {
     switch (ch) {
     case 's':
       ubus_socket = optarg;
       break;
+    case 'p':
+      modem_name = optarg;
+      break;
+    case 'h':
+      printf("AT process parameters: \n");
+      printf("-s: ubus socket domain name.\n");
+      printf("    -openwrt ubus socket domain name: /var/run/ubus.sock\n");
+      printf("    -ublox ubus socket domain name:   /var/run/ublox.sock\n");
+      printf("-p: modem usb port name.\n");
+      printf("    -ublox modem usb port name:  /dev/ttyACM0");
+      printf("    -sierra modem usb port name: /dev/ttyUSB3\n");
+      exit(0);
     default:
       break;
     }
@@ -75,6 +88,11 @@ int main(int argc, char **argv)
 
   argc -= optind;
   argv += optind;
+
+  if(!modem_name)
+  {
+    modem_name = MODEM_DEFAULT_PORT_NAME;
+  }
 
   uloop_init();
   signal(SIGPIPE, SIG_IGN);
@@ -87,7 +105,7 @@ int main(int argc, char **argv)
 
   ubus_add_uloop(ctx);
 
-  server_main();
+  server_main(modem_name);
 
   ubus_free(ctx);
   uloop_done();

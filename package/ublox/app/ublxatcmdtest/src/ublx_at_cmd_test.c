@@ -27,7 +27,6 @@
  *
  ***********************************************************/
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,11 +35,13 @@
 #define CMD_NAME_LEN 128
 #define CMD_MSG_LEN 1024
 
+#define DEFAULT_MODEM_PORT "/dev/ttyACM0"
+
 void main(int argc, char *argv[])
 {
 
   char cmd_name[CMD_NAME_LEN];
-  char *modem_port_name = "/dev/ttyUSB3";
+  char *modem_port_name = NULL;
   char recv_msg[CMD_MSG_LEN];
   int fd, ret;
   int cmd_result;
@@ -49,23 +50,32 @@ void main(int argc, char *argv[])
   char *num = "\"3920635677\"";
 
   int opt;
-  while ((opt = getopt (argc, argv, "c:s:")) != -1)
+  while ((opt = getopt (argc, argv, "c:s:p:")) != -1)
   {
     switch (opt)
     {
       case 'c':
-        printf ("cmd name: \"%s\"\n", optarg);
+        printf("cmd name: \"%s\"\n", optarg);
         strncpy(cmd_name, optarg, strlen(optarg));
         break;
       case 's':
         send_sms = 1;
         strncpy(sms_msg, optarg, strlen(optarg));
-        printf ("sms message: \"%s\"\n", optarg);
+        printf ("sms message: \"%s\"\n", sms_msg);
+        break;
+      case 'p':
+        modem_port_name = optarg;
+        printf ("modem port: \"%s\"\n", modem_port_name);
         break;
       default:
-        printf("No input parameter.");
+        printf("No input parameter.\n");
         exit(1);
     }
+  }
+
+  if(modem_port_name == NULL)
+  {
+    modem_port_name = DEFAULT_MODEM_PORT;
   }
 
   fd = open_modem(modem_port_name);
@@ -73,7 +83,6 @@ void main(int argc, char *argv[])
   {
     exit(1);
   }
-
 
   if(send_sms == 0)
   {
@@ -100,6 +109,8 @@ void main(int argc, char *argv[])
   }
 
   close_modem(fd);
+
+  sleep(3);
 
   exit(0);
 }
