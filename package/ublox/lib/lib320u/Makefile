@@ -62,7 +62,7 @@ COMPONENT_SOURCEFILES += src/lib320u.c
 COMPONENT_INCLUDEDIRS += inc
 
 # Definitions 
-COMPONENT_DEFINITIONS += \
+COMPONENT_DEFINITIONS +=
 
 
 # Library dependency

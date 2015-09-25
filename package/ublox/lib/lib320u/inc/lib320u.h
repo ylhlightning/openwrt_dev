@@ -20,6 +20,10 @@
 #include <time.h>
 #include <sys/time.h>
 
+#ifdef DEBUG_ON
+#define DEBUG_FLAG
+#endif
+
 #define CMD_MAX_LEN 128
 #define CMD_MSG_MAX_LEN 1024
 #define USB_BUFFER 1024

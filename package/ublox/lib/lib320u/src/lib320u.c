@@ -18,6 +18,75 @@ static char *str_sig_int = "sigint signal caught!\n";
 static int modem_fd = 0;
 
 /************************************************/
+
+// Filter all unecessasry /n in the front or at the end of string.
+static void string_filter(char *str)
+{
+  int len = strlen(str);
+  int i, j, k, start_byte, stop_byte;
+  char *ch = str;
+  char *ch_tmp = str;
+  char *ch_start = NULL;
+
+  for(i = 0; i < len; i++)
+  {
+    if(*ch == '\n')
+    {
+      ch ++;
+      continue;
+    }
+    start_byte = i;
+    ch_start = ch;
+    break;
+  }
+  
+#ifdef DEBUG_FLAG
+  printf("Start byte: %d\n", start_byte);
+#endif
+
+  for(k = 0; k < len - start_byte -1; k++)
+  {
+    ch ++;
+  }
+
+  for(j = len - 1; j >= 0; j--)
+  {
+    if(*ch == '\n')
+    {
+      ch --;
+      continue;
+    }
+    stop_byte = j;
+    break;
+  }
+
+#ifdef DEBUG_FLAG
+  printf("stop byte: %d\n", stop_byte);
+#endif
+
+  if(stop_byte >= start_byte)
+  {
+    for(k = 0; k < (stop_byte - start_byte + 1); k++)
+    {
+      *ch_tmp = *ch_start;
+      ch_tmp ++;
+      ch_start ++;
+    }
+    *ch_tmp = '\0';
+  }
+  else
+  {
+#ifdef DEBUG_FLAG
+    printf("A string all with \n, reset all.\n");
+#endif
+    memset(str, '\0', strlen(str));
+  }
+#ifdef DEBUG_FLAG
+  printf("Filtered string:%s, length:%d\n", str, strlen(str));
+#endif
+}
+
+
 /*static internal use function */
 static void timer_handler(int signum)
 {
@@ -263,6 +332,9 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
     
   }
   /* terminate the string and see if we got an OK response */
+
+  string_filter(modem_reply_msg);
+
   *cmd_result = result;
 
   modem_answer_timer_stop();
