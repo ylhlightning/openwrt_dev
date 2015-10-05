@@ -50,7 +50,7 @@ void main(int argc, char *argv[])
   char *num = "\"3920635677\"";
 
   int opt;
-  while ((opt = getopt (argc, argv, "c:s:p:")) != -1)
+  while ((opt = getopt (argc, argv, "c:s:p:h")) != -1)
   {
     switch (opt)
     {
@@ -67,6 +67,12 @@ void main(int argc, char *argv[])
         modem_port_name = optarg;
         printf ("modem port: \"%s\"\n", modem_port_name);
         break;
+      case 'h':
+        printf("atcmdtest:\n");
+        printf("-c: AT command name.\n");
+        printf("-s: sms message.\n");
+        printf("-p: modem serial port name.\n");
+        exit(0);
       default:
         printf("No input parameter.\n");
         exit(1);
@@ -78,6 +84,15 @@ void main(int argc, char *argv[])
     modem_port_name = DEFAULT_MODEM_PORT;
   }
 
+  if(!cmd_name)
+  {
+    printf("please insert a AT command name.\n");
+    exit(1);
+  }
+
+  ret = at_send_cmd(modem_port_name, cmd_name, recv_msg);
+
+/*
   fd = open_modem(modem_port_name);
   if(fd < 0)
   {
@@ -109,7 +124,7 @@ void main(int argc, char *argv[])
   }
 
   close_modem(fd);
-
+*/
   sleep(3);
 
   exit(0);

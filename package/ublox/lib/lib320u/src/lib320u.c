@@ -310,6 +310,15 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
 
     bufptr += n;
 
+    if(strstr(buffer, ">") != NULL)
+    {
+      printf("%s\n", buffer);
+      strncpy(modem_reply_msg, buffer, USB_BUFFER);
+      result = AT_CMD_SMS;
+      ret = TRUE;
+      break;
+    }
+
     if(strstr(buffer, "OK") != NULL)
     {
       *bufptr = '\0';
@@ -328,8 +337,7 @@ int recv_data_from_modem(int fd, int *cmd_result, char *modem_reply_msg)
       result =FALSE;
       ret = TRUE;
       break;
-    }    
-    
+    }
   }
   /* terminate the string and see if we got an OK response */
 

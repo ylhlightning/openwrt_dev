@@ -34,6 +34,7 @@
 
 #define TRUE 0
 #define FALSE -1
+#define AT_CMD_SMS 1
 
 /*
  * @Function name: open_modem 
