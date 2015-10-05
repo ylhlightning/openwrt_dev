@@ -161,6 +161,40 @@ static void modem_interrupt_setup(void)
   sigaction (SIGINT, &sa, NULL);
 }
 
+static read_sms_send(int fd)
+{
+  char read_buf[MAX_SMS_LEN];
+  char *read_ptr = read_buf;
+  int write_bytes, msg_len;
+
+  memset(read_buf, '\0', MAX_SMS_LEN);
+
+  while(read(STDIN_FILENO, read_ptr, 1))
+  {
+    if(*read_ptr == NEW_LINE)
+    {
+      printf("New line encontered, exit.\n");
+      *read_ptr = CTRL_Z;
+      break;
+    }
+    printf("%c", *read_ptr);
+    read_ptr ++;
+  }
+
+  msg_len = strlen(read_buf);
+
+  /* send a message */
+  if ((write_bytes = write(fd, read_buf, msg_len + 1)) < msg_len+1)
+  {
+    printf("[%s]: write error: %s\n", __FUNCTION__, strerror(errno));
+    return FALSE;
+  }
+  else
+  {
+    printf("Successful to send %d byte messages [%s] to modem serial port\n", write_bytes, read_buf);
+  }
+}
+
 /************************************************/
 /*export function */
 
@@ -556,6 +590,18 @@ int at_send_cmd(char *modem_port_name, char *cmd_name, char *modem_reply_msg)
   {
     printf("[%s]: Failed to receive message from modem\n");
     return FALSE;
+  }
+
+  if(cmd_result == AT_CMD_SMS)
+  {
+    read_sms_send(fd);
+
+    ret = recv_data_from_modem(fd, &cmd_result, recv_msg);
+    if(ret < 0)
+    {
+      printf("[%s]: Failed to receive message from modem\n");
+      return FALSE;
+    }
   }
 
   strncpy(modem_reply_msg, recv_msg, strlen(recv_msg));

@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <termios.h>
 #include <unistd.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -29,8 +28,11 @@
 #define USB_BUFFER 1024
 #define CRTL_Z 26
 #define WAIT_MODEM_ANSWER_MAX_TIMEOUT 120
+#define MAX_SMS_LEN 1024
 
 #define AT_SEND_SMS_CMD "AT+CMGS="
+#define NEW_LINE '\x0A'
+#define CTRL_Z '\x1A'
 
 #define TRUE 0
 #define FALSE -1
