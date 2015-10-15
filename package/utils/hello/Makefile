@@ -1,45 +1,121 @@
+########################################################### 
 #
-# Copyright (C) 2010-2015 Jo-Philipp Wich <jow@openwrt.org>
+# Copyright (C) u-blox Italia
 #
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
+# u-blox Italia
+# Via Stazione di Prosecco 15
+# 34010 Sgonico - TRIESTE, ITALY
 #
+# All rights reserved.
+#
+# This source file is the sole property of
+# u-blox Italia. Reproduction or utilization of
+# this source in whole or part is forbidden
+# without the written consent of u-blox Italia.
+#
+###########################################################
+#
+# Project: M39G_MV
+# Purpose: Building system
+#
+###########################################################
+#
+#  $Archive ::
+#
+# $Workfile :: Makefile (ublxatcmdtest)
+# $Modtime  ::
+# $Revision ::
+# $Author   :: Linhu Ying
+# $Log      ::
+###########################################################
+
+THIS_PROJECT_NAME =hello
+
+# -----------------------------------------------------------------------------
+# Global makerules
+# -----------------------------------------------------------------------------
 
 include $(TOPDIR)/rules.mk
-
-PKG_NAME:=hello
-
-PKG_RELEASE:=1
-
-PKG_USE_MIPS16:=0
-
-
 include $(INCLUDE_DIR)/package.mk
 
-define Package/hello
+# -----------------------------------------------------------------------------
+# Project specific makeoptions
+# -----------------------------------------------------------------------------
+
+# Init of local variables
+PROJECT_SOURCEFILES =
+PROJECT_INCLUDEDIRS =
+PROJECT_DEFINITIONS =
+PROJECT_LIBRARIES =
+PROJECT_CFLAGS =
+PROJECT_LDFLAGS =
+
+PKG_NAME:=$(THIS_PROJECT_NAME)
+PKG_RELEASE:=1
+PKG_USE_MIPS16:=0
+
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
+
+# Source files
+PROJECT_SOURCEFILES += files/hello.c files/tp.c
+
+# Include directories
+PROJECT_INCLUDEDIRS += files/
+
+# Library dependency
+PROJECT_LIBRARIES := -llttng-ust -ldl
+
+# CFLAGS 
+PROJECT_DEFINITIONS += 
+
+# Package configuration
+define Package/$(PKG_NAME)/Default
   SECTION:=utils
   CATEGORY:=Utilities
-  TITLE:=hello
-  MAINTAINER:=linhu
+  TITLE:=$(PKG_NAME)
+  MAINTAINER:=lyin
 endef
 
-define Package/hello/description
- Px5g is a tiny standalone X.509 certificate generator.
- It suitable to create key files and certificates in DER
- and PEM format for use with stunnel, uhttpd and others.
+# Package description
+define Package/$(PKG_NAME)/description
+lttng hello example
 endef
+
+# Package dependency
+define Package/$(PKG_NAME)
+$(call Package/$(PKG_NAME)/Default)
+  TITLE += (library dependency)
+  DEPENDS:=+lttng-ust
+endef
+
+########################################################
+########      project  processing      #################
+########    DO NOT MODIFY FROM HERE    #################
+########################################################
+
+#process include directories
+PROJECT_CFLAGS += $(sort $(strip $(addprefix -I,$(PROJECT_INCLUDEDIRS)  ) ) )
+#process compiling switches / definitions
+PROJECT_CFLAGS += $(sort $(strip $(addprefix -D,$(PROJECT_DEFINITIONS)  ) ) )
+#process library dependency.
+PROJECT_LDFLAGS += $(PROJECT_LIBRARIES)
+
+PROJECT_CFLAGS += -ggdb3
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) -r ./* $(PKG_BUILD_DIR)/
 endef
 
 define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/hello files/hello.c 
+	$(TARGET_CC) $(PROJECT_CFLAGS) -o $(PKG_BUILD_DIR)/$(PKG_NAME) $(PROJECT_SOURCEFILES) $(PROJECT_LDFLAGS)
 endef
 
-define Package/hello/install
+define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/hello $(1)/usr/sbin/hello
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/
 endef
 
-$(eval $(call BuildPackage,hello))
+$(eval $(call BuildPackage,$(PKG_NAME)))
+
+
